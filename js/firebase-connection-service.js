@@ -35,11 +35,11 @@
       if (connected) {
         statusElement.textContent = '● Terhubung';
         statusElement.style.color = '#A5F0A5';
-        statusElement.style.fontWeight = '600';
+        statusElement.style.borderColor = '#A5F0A5';
       } else {
         statusElement.textContent = '● Terputus';
         statusElement.style.color = '#FFB3B3';
-        statusElement.style.fontWeight = '600';
+        statusElement.style.borderColor = '#FFB3B3';
       }
     }
 

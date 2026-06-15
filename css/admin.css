@@ -183,6 +183,10 @@
 .connection-status {
   font-size: var(--font-size-sm);
   font-weight: 600;
+  border: 2px solid var(--color-button-text);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  color: var(--color-button-text);
 }
 
 /* === Admin Actions === */

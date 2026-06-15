@@ -853,6 +853,13 @@ ul {
   background-color: var(--color-surface);
 }
 
+.packages__featured {
+  margin-bottom: var(--space-xl);
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .packages__subtitle {
   text-align: center;
   font-size: var(--font-size-base);
@@ -867,6 +874,51 @@ ul {
   gap: var(--space-lg);
   max-width: 1000px;
   margin: 0 auto;
+}
+
+/* Featured Card */
+.packages__card--featured {
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFFBF0 100%);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.packages__card--featured::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+}
+
+.packages__card--featured .packages__card-name {
+  font-size: var(--font-size-2xl);
+}
+
+.packages__card--featured .packages__card-price .price {
+  font-size: var(--font-size-3xl);
+}
+
+.packages__card--featured .packages__card-btn {
+  padding: var(--space-md) var(--space-2xl);
+  font-size: var(--font-size-lg);
+}
+
+/* Lengkap Badge */
+.packages__badge--lengkap {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-available);
+  background-color: var(--color-available-bg);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  margin-top: var(--space-xs);
 }
 
 .packages__card {
@@ -887,6 +939,10 @@ ul {
   border-color: var(--color-secondary);
   box-shadow: var(--shadow-lg);
   transform: translateY(-4px);
+}
+
+.packages__card--featured:hover {
+  transform: translateY(-6px);
 }
 
 /* Popular Card */
@@ -1540,7 +1596,7 @@ ul {
   }
 
   .packages__grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 

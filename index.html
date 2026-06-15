@@ -517,7 +517,7 @@
     <div class="container">
       <h2 class="section__title">Paket Rekomendasi</h2>
       <p class="packages__subtitle">Hemat sampai 3rb! Pilih paket yang pas untukmu</p>
-      <div class="packages__grid" id="packages-container">
+      <div id="packages-container">
         <!-- Rendered dynamically from Firebase -->
       </div>
 
@@ -637,52 +637,63 @@
             var priceK = Math.round(pkg.price / 1000);
             var isTopping = entry.id === 'topping_suka_suka';
 
-            html += '<div class="' + cardClass + '">';
+            var cardHtml = '<div class="' + cardClass + '">';
 
             if (isFeatured) {
-              html += '<div class="packages__card-badge">⭐ Paling Laris</div>';
+              cardHtml += '<div class="packages__card-badge">⭐ Paling Laris</div>';
             }
 
-            html += '<div class="packages__card-header">';
-            html += '<span class="packages__card-icon">' + escapeHtml(pkg.icon || '') + '</span>';
-            html += '<h3 class="packages__card-name">' + escapeHtml(pkg.name) + '</h3>';
-            html += '<span class="packages__card-tag">' + escapeHtml(pkg.tag || '') + '</span>';
-            html += '</div>';
+            cardHtml += '<div class="packages__card-header">';
+            cardHtml += '<span class="packages__card-icon">' + escapeHtml(pkg.icon || '') + '</span>';
+            cardHtml += '<h3 class="packages__card-name">' + escapeHtml(pkg.name) + '</h3>';
+            cardHtml += '<span class="packages__card-tag">' + escapeHtml(pkg.tag || '') + '</span>';
+            cardHtml += '</div>';
 
             if (itemNames.length > 0) {
-              html += '<ul class="packages__card-items">';
+              cardHtml += '<ul class="packages__card-items">';
               itemNames.forEach(function(item) {
-                html += '<li>' + escapeHtml(item) + '</li>';
+                cardHtml += '<li>' + escapeHtml(item) + '</li>';
               });
-              html += '</ul>';
+              cardHtml += '</ul>';
             } else if (pkg.description) {
-              html += '<p class="packages__card-description">' + escapeHtml(pkg.description) + '</p>';
+              cardHtml += '<p class="packages__card-description">' + escapeHtml(pkg.description) + '</p>';
             }
 
-            html += '<div class="packages__card-pricing">';
+            cardHtml += '<div class="packages__card-pricing">';
             if (isTopping) {
-              html += '<p class="packages__card-price"><span class="price">+' + priceK + 'k</span><span class="packages__card-price-note">/topping</span></p>';
+              cardHtml += '<p class="packages__card-price"><span class="price">+' + priceK + 'k</span><span class="packages__card-price-note">/topping</span></p>';
             } else {
-              html += '<p class="packages__card-price"><span class="price">' + priceK + 'k</span></p>';
-              html += '<span class="packages__badge--lengkap">Lengkap</span>';
+              cardHtml += '<p class="packages__card-price"><span class="price">' + priceK + 'k</span></p>';
+              cardHtml += '<span class="packages__badge--lengkap">Lengkap</span>';
             }
-            html += '</div>';
+            cardHtml += '</div>';
 
-            html += '<a href="' + waLink + '" class="btn ' + (isTopping ? 'btn--secondary' : 'btn--primary') + ' packages__card-btn" target="_blank" rel="noopener">';
+            cardHtml += '<a href="' + waLink + '" class="btn ' + (isTopping ? 'btn--secondary' : 'btn--primary') + ' packages__card-btn" target="_blank" rel="noopener">';
             if (isTopping) {
-              html += '<span>Buat Paket Sendiri</span>';
-              html += '<span class="btn__icon">🎨</span>';
+              cardHtml += '<span>Buat Paket Sendiri</span>';
+              cardHtml += '<span class="btn__icon">🎨</span>';
             } else {
-              html += '<span>Pesan via WhatsApp</span>';
-              html += '<span class="btn__icon">💬</span>';
+              cardHtml += '<span>Pesan via WhatsApp</span>';
+              cardHtml += '<span class="btn__icon">💬</span>';
             }
-            html += '</a>';
+            cardHtml += '</a>';
 
-            html += '</div>';
+            cardHtml += '</div>';
+            return cardHtml;
           }
 
-          if (featured) renderCard(featured);
-          regular.forEach(function(entry) { renderCard(entry); });
+          // Build featured and regular card HTML separately
+          var featuredHtml = '';
+          var regularHtml = '';
+
+          if (featured) featuredHtml = renderCard(featured);
+          regular.forEach(function(entry) { regularHtml += renderCard(entry); });
+
+          // Assemble final HTML with featured above grid
+          if (featuredHtml) {
+            html += '<div class="packages__featured">' + featuredHtml + '</div>';
+          }
+          html += '<div class="packages__grid">' + regularHtml + '</div>';
 
           container.innerHTML = html;
         }

@@ -922,6 +922,388 @@
         return null;
       }
 
+      // =========================================================================
+      // Tab Navigation
+      // =========================================================================
+      function switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.admin-tabs__btn').forEach(function(btn) {
+          btn.classList.remove('admin-tabs__btn--active');
+        });
+        document.querySelector('[data-tab="' + tabName + '"]').classList.add('admin-tabs__btn--active');
+
+        // Update tab content
+        document.querySelectorAll('.admin-tab-content').forEach(function(content) {
+          content.style.display = 'none';
+        });
+        document.getElementById('tab-content-' + tabName).style.display = 'block';
+      }
+
+      document.querySelectorAll('.admin-tabs__btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          switchTab(this.getAttribute('data-tab'));
+        });
+      });
+
+      // =========================================================================
+      // Packages CRUD
+      // =========================================================================
+
+      // Load and render packages
+      function loadAndRenderPackages() {
+        FirebaseService.getPackages().then(function(data) {
+          currentPackagesData = data;
+          renderPackagesTable(data);
+        });
+      }
+
+      // Render packages table
+      function renderPackagesTable(data) {
+        var tbody = document.getElementById('packages-table-body');
+        tbody.innerHTML = '';
+
+        var packageKeys = Object.keys(data);
+
+        if (packageKeys.length === 0) {
+          var emptyRow = document.createElement('tr');
+          emptyRow.innerHTML = '<td colspan="8" class="packages-table__empty">Belum ada paket. Klik \"Tambah Paket\" untuk membuat paket baru.</td>';
+          tbody.appendChild(emptyRow);
+          return;
+        }
+
+        // Sort by order
+        packageKeys.sort(function(a, b) {
+          return (data[a].order || 0) - (data[b].order || 0);
+        });
+
+        packageKeys.forEach(function(packageId) {
+          var pkg = data[packageId];
+          var row = document.createElement('tr');
+          row.setAttribute('data-package-id', packageId);
+
+          // Icon
+          var iconCell = document.createElement('td');
+          iconCell.className = 'packages-table__icon';
+          iconCell.textContent = pkg.icon || '🍜';
+
+          // Name
+          var nameCell = document.createElement('td');
+          nameCell.className = 'packages-table__name';
+          nameCell.textContent = pkg.name;
+
+          // Price
+          var priceCell = document.createElement('td');
+          priceCell.className = 'packages-table__price';
+          priceCell.textContent = 'Rp ' + formatPrice(pkg.price);
+
+          // Items count
+          var itemsCell = document.createElement('td');
+          itemsCell.className = 'packages-table__items';
+          var itemsCount = (pkg.items && pkg.items.length) ? pkg.items.length : 0;
+          itemsCell.textContent = itemsCount + ' item' + (itemsCount !== 1 ? 's' : '');
+
+          // Tag
+          var tagCell = document.createElement('td');
+          var tagBadge = document.createElement('span');
+          tagBadge.className = 'packages-badge packages-badge--' + (pkg.tag || 'basic').toLowerCase().replace(/\s+/g, '-');
+          tagBadge.textContent = pkg.tag || 'Basic';
+          tagCell.appendChild(tagBadge);
+
+          // Featured
+          var featuredCell = document.createElement('td');
+          if (pkg.isFeatured) {
+            var featuredBadge = document.createElement('span');
+            featuredBadge.className = 'packages-badge packages-badge--featured';
+            featuredBadge.textContent = '⭐ Featured';
+            featuredCell.appendChild(featuredBadge);
+          } else {
+            featuredCell.textContent = '-';
+          }
+
+          // Status
+          var statusCell = document.createElement('td');
+          var statusBadge = document.createElement('span');
+          statusBadge.className = 'packages-badge packages-badge--' + (pkg.isActive ? 'active' : 'inactive');
+          statusBadge.textContent = pkg.isActive ? 'Aktif' : 'Nonaktif';
+          statusCell.appendChild(statusBadge);
+
+          // Actions
+          var actionsCell = document.createElement('td');
+          actionsCell.className = 'packages-table__actions';
+
+          var editBtn = document.createElement('button');
+          editBtn.className = 'btn btn--text btn--sm';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', function() {
+            openPackageEditModal(packageId);
+          });
+
+          var deleteBtn = document.createElement('button');
+          deleteBtn.className = 'btn btn--text btn--danger btn--sm';
+          deleteBtn.textContent = 'Hapus';
+          deleteBtn.addEventListener('click', function() {
+            openPackageDeleteModal(packageId, pkg.name);
+          });
+
+          actionsCell.appendChild(editBtn);
+          actionsCell.appendChild(deleteBtn);
+
+          row.appendChild(iconCell);
+          row.appendChild(nameCell);
+          row.appendChild(priceCell);
+          row.appendChild(itemsCell);
+          row.appendChild(tagCell);
+          row.appendChild(featuredCell);
+          row.appendChild(statusCell);
+          row.appendChild(actionsCell);
+
+          tbody.appendChild(row);
+        });
+      }
+
+      // Load menu items for package items checkboxes
+      function loadPackageItemsCheckboxes(selectedItems) {
+        var container = document.getElementById('package-items-checkboxes');
+        container.innerHTML = '';
+
+        if (!currentMenuData || Object.keys(currentMenuData).length === 0) {
+          container.innerHTML = '<span class="form-help">Memuat menu...</span>';
+          return;
+        }
+
+        // Sort by category then by order
+        var menuItems = Object.keys(currentMenuData).map(function(id) {
+          return {
+            id: id,
+            name: currentMenuData[id].name,
+            category: currentMenuData[id].category || 'Lainnya',
+            order: currentMenuData[id].order || 0
+          };
+        }).sort(function(a, b) {
+          if (a.category !== b.category) return a.category.localeCompare(b.category);
+          return a.order - b.order;
+        });
+
+        var currentCategory = '';
+        menuItems.forEach(function(item) {
+          if (item.category !== currentCategory) {
+            currentCategory = item.category;
+            var categoryLabel = document.createElement('div');
+            categoryLabel.className = 'package-items-category';
+            categoryLabel.textContent = currentCategory;
+            container.appendChild(categoryLabel);
+          }
+
+          var label = document.createElement('label');
+          label.className = 'package-items-item';
+
+          var checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.name = 'package-items';
+          checkbox.value = item.id;
+          checkbox.checked = selectedItems && selectedItems.indexOf(item.id) !== -1;
+
+          var span = document.createElement('span');
+          span.textContent = item.name;
+
+          label.appendChild(checkbox);
+          label.appendChild(span);
+          container.appendChild(label);
+        });
+      }
+
+      // Open add package modal
+      function openPackageAddModal() {
+        document.getElementById('package-modal-title').textContent = 'Tambah Paket';
+        document.getElementById('package-id').value = '';
+        document.getElementById('package-name').value = '';
+        document.getElementById('package-description').value = '';
+        document.getElementById('package-icon').value = '';
+        document.getElementById('package-price').value = '';
+        document.getElementById('package-tag').value = 'Basic';
+        document.getElementById('package-featured').checked = false;
+        document.getElementById('package-status').value = 'true';
+        document.getElementById('package-order').value = '';
+        document.getElementById('package-whatsapp').value = '';
+
+        loadPackageItemsCheckboxes([]);
+        clearPackageErrors();
+        document.getElementById('package-modal').style.display = 'flex';
+      }
+
+      // Open edit package modal
+      function openPackageEditModal(packageId) {
+        var pkg = currentPackagesData[packageId];
+        if (!pkg) return;
+
+        document.getElementById('package-modal-title').textContent = 'Edit Paket';
+        document.getElementById('package-id').value = packageId;
+        document.getElementById('package-name').value = pkg.name || '';
+        document.getElementById('package-description').value = pkg.description || '';
+        document.getElementById('package-icon').value = pkg.icon || '';
+        document.getElementById('package-price').value = pkg.price || '';
+        document.getElementById('package-tag').value = pkg.tag || 'Basic';
+        document.getElementById('package-featured').checked = pkg.isFeatured || false;
+        document.getElementById('package-status').value = pkg.isActive ? 'true' : 'false';
+        document.getElementById('package-order').value = pkg.order || '';
+        document.getElementById('package-whatsapp').value = pkg.whatsappMessage || '';
+
+        loadPackageItemsCheckboxes(pkg.items || []);
+        clearPackageErrors();
+        document.getElementById('package-modal').style.display = 'flex';
+      }
+
+      // Open delete package modal
+      function openPackageDeleteModal(packageId, packageName) {
+        currentPackageDeleteId = packageId;
+        document.getElementById('package-delete-name').textContent = packageName;
+        document.getElementById('package-delete-modal').style.display = 'flex';
+      }
+
+      // Close package modals
+      function closePackageModals() {
+        document.getElementById('package-modal').style.display = 'none';
+        document.getElementById('package-delete-modal').style.display = 'none';
+        currentPackageDeleteId = null;
+      }
+
+      // Clear package form errors
+      function clearPackageErrors() {
+        document.getElementById('package-name-error').textContent = '';
+        document.getElementById('package-description-error').textContent = '';
+        document.getElementById('package-icon-error').textContent = '';
+        document.getElementById('package-price-error').textContent = '';
+      }
+
+      // Validate package form
+      function validatePackageForm() {
+        var errors = [];
+        var name = document.getElementById('package-name').value.trim();
+        var description = document.getElementById('package-description').value.trim();
+        var icon = document.getElementById('package-icon').value.trim();
+        var price = document.getElementById('package-price').value;
+
+        if (!name) {
+          errors.push({ field: 'package-name', message: 'Nama paket wajib diisi' });
+        }
+        if (!description) {
+          errors.push({ field: 'package-description', message: 'Deskripsi wajib diisi' });
+        }
+        if (!icon) {
+          errors.push({ field: 'package-icon', message: 'Icon wajib diisi' });
+        }
+        if (!price || price < 0) {
+          errors.push({ field: 'package-price', message: 'Harga wajib diisi dan harus lebih dari 0' });
+        }
+
+        return errors;
+      }
+
+      // Handle package form submit
+      function handlePackageFormSubmit(e) {
+        e.preventDefault();
+        clearPackageErrors();
+
+        var errors = validatePackageForm();
+        if (errors.length > 0) {
+          errors.forEach(function(err) {
+            document.getElementById(err.field + '-error').textContent = err.message;
+          });
+          return;
+        }
+
+        var packageId = document.getElementById('package-id').value;
+
+        // Get selected items
+        var selectedItems = [];
+        document.querySelectorAll('input[name="package-items"]:checked').forEach(function(cb) {
+          selectedItems.push(cb.value);
+        });
+
+        var data = {
+          name: document.getElementById('package-name').value.trim(),
+          description: document.getElementById('package-description').value.trim(),
+          icon: document.getElementById('package-icon').value.trim(),
+          items: selectedItems,
+          price: parseInt(document.getElementById('package-price').value, 10),
+          tag: document.getElementById('package-tag').value,
+          isFeatured: document.getElementById('package-featured').checked,
+          isActive: document.getElementById('package-status').value === 'true',
+          order: parseInt(document.getElementById('package-order').value, 10) || 0,
+          whatsappMessage: document.getElementById('package-whatsapp').value.trim()
+        };
+
+        // If setting featured, unset other featured packages first
+        var promise;
+        if (data.isFeatured && (!packageId || !currentPackagesData[packageId] || !currentPackagesData[packageId].isFeatured)) {
+          promise = unsetAllFeatured().then(function() {
+            if (packageId) {
+              return FirebaseService.updatePackage(packageId, data);
+            } else {
+              return FirebaseService.addPackage(data);
+            }
+          });
+        } else {
+          if (packageId) {
+            promise = FirebaseService.updatePackage(packageId, data);
+          } else {
+            promise = FirebaseService.addPackage(data);
+          }
+        }
+
+        promise.then(function() {
+          closePackageModals();
+          loadAndRenderPackages();
+        }).catch(function(error) {
+          alert('Error: ' + error.message);
+        });
+      }
+
+      // Unset all featured packages
+      function unsetAllFeatured() {
+        var updates = {};
+        Object.keys(currentPackagesData).forEach(function(id) {
+          if (currentPackagesData[id].isFeatured) {
+            updates[id + '/isFeatured'] = false;
+          }
+        });
+
+        if (Object.keys(updates).length === 0) {
+          return Promise.resolve();
+        }
+
+        return FirebaseService.packagesRef.update(updates);
+      }
+
+      // Handle package delete confirm
+      function handlePackageDeleteConfirm() {
+        if (!currentPackageDeleteId) return;
+
+        FirebaseService.deletePackage(currentPackageDeleteId).then(function() {
+          closePackageModals();
+          loadAndRenderPackages();
+        }).catch(function(error) {
+          alert('Error: ' + error.message);
+        });
+      }
+
+      // Setup package event listeners
+      document.getElementById('add-package-button').addEventListener('click', openPackageAddModal);
+      document.getElementById('package-modal-close').addEventListener('click', closePackageModals);
+      document.getElementById('package-modal-cancel').addEventListener('click', closePackageModals);
+      document.getElementById('package-form').addEventListener('submit', handlePackageFormSubmit);
+      document.getElementById('package-delete-modal-close').addEventListener('click', closePackageModals);
+      document.getElementById('package-delete-cancel').addEventListener('click', closePackageModals);
+      document.getElementById('package-delete-confirm').addEventListener('click', handlePackageDeleteConfirm);
+
+      // Close modals on overlay click
+      document.querySelectorAll('.modal__overlay').forEach(function(overlay) {
+        overlay.addEventListener('click', function() {
+          closeModals();
+          closePackageModals();
+        });
+      });
+
       // Initialize
       initMenuData();
     })();

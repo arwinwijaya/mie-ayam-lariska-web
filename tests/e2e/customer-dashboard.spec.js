@@ -173,3 +173,306 @@ test.describe('Customer Dashboard Structure', () => {
     expect(count).toBeGreaterThan(0);
   });
 });
+
+// ===========================================================================
+// Stock Service — caching, normalization, and fallback tests
+// ===========================================================================
+test.describe('Stock Service — Normalization', () => {
+  test.beforeEach(async ({ page }) => {
+    // Clear all localStorage before each test
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+  });
+
+  test('normalizes invalid stock status to sold_out', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.normalizeStockStatus('avaiable');
+    });
+    expect(result).toBe('sold_out');
+  });
+
+  test('normalizes typo stock status to sold_out', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.normalizeStockStatus('limted');
+    });
+    expect(result).toBe('sold_out');
+  });
+
+  test('normalizes null stock status to sold_out', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.normalizeStockStatus(null);
+    });
+    expect(result).toBe('sold_out');
+  });
+
+  test('normalizes undefined stock status to sold_out', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.normalizeStockStatus(undefined);
+    });
+    expect(result).toBe('sold_out');
+  });
+
+  test('normalizes empty string stock status to sold_out', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.normalizeStockStatus('');
+    });
+    expect(result).toBe('sold_out');
+  });
+
+  test('preserves valid status available', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.normalizeStockStatus('available');
+    });
+    expect(result).toBe('available');
+  });
+
+  test('preserves valid status limited', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.normalizeStockStatus('limited');
+    });
+    expect(result).toBe('limited');
+  });
+
+  test('preserves valid status sold_out', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.normalizeStockStatus('sold_out');
+    });
+    expect(result).toBe('sold_out');
+  });
+});
+
+test.describe('Stock Service — localStorage Cache', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+  });
+
+  test('saves stock data to localStorage', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      StockService.saveStockData({
+        'mie_ayam_komplit': { status: 'sold_out' },
+        'teh_anget': { status: 'limited' }
+      });
+    });
+
+    const stored = await page.evaluate(() => {
+      return localStorage.getItem('mie_ayam_lariska_stock');
+    });
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored);
+    expect(parsed['mie_ayam_komplit'].status).toBe('sold_out');
+    expect(parsed['teh_anget'].status).toBe('limited');
+  });
+
+  test('reads cached stock data from localStorage', async ({ page }) => {
+    await page.goto('/');
+    // Manually set localStorage
+    await page.evaluate(() => {
+      localStorage.setItem('mie_ayam_lariska_stock', JSON.stringify({
+        'mie_ayam_komplit': { status: 'available' },
+        'es_teh_manis': { status: 'sold_out' }
+      }));
+    });
+
+    const cached = await page.evaluate(() => {
+      return StockService.getCachedStockData();
+    });
+    expect(cached).toBeTruthy();
+    expect(cached['mie_ayam_komplit'].status).toBe('available');
+    expect(cached['es_teh_manis'].status).toBe('sold_out');
+  });
+
+  test('returns null when no cached data exists', async ({ page }) => {
+    await page.goto('/');
+    const cached = await page.evaluate(() => {
+      return StockService.getCachedStockData();
+    });
+    expect(cached).toBeNull();
+  });
+
+  test('clears stock cache', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      StockService.saveStockData({ 'test_item': { status: 'available' } });
+    });
+
+    await page.evaluate(() => {
+      StockService.clearStockCache();
+    });
+
+    const cached = await page.evaluate(() => {
+      return StockService.getCachedStockData();
+    });
+    expect(cached).toBeNull();
+  });
+});
+
+test.describe('Stock Service — Fallback Logic', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+  });
+
+  test('defaults to available when no cache and no firebase data', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.getStockStatus('mie_ayam_komplit', null);
+    });
+    expect(result).toBe('available');
+  });
+
+  test('uses firebase data when available', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.getStockStatus('mie_ayam_komplit', 'sold_out');
+    });
+    expect(result).toBe('sold_out');
+  });
+
+  test('uses cached data for missing firebase entries', async ({ page }) => {
+    await page.goto('/');
+    // Pre-populate cache
+    await page.evaluate(() => {
+      StockService.saveStockData({
+        'mie_ayam_komplit': { status: 'limited' }
+      });
+    });
+    // Firebase has no data for this item (null)
+    const result = await page.evaluate(() => {
+      return StockService.getStockStatus('mie_ayam_komplit', null);
+    });
+    expect(result).toBe('available');
+  });
+
+  test('merges firebase data with cached data for partial updates', async ({ page }) => {
+    await page.goto('/');
+    // Pre-populate cache with full stock data
+    await page.evaluate(() => {
+      StockService.saveStockData({
+        'mie_ayam_komplit': { status: 'available' },
+        'teh_anget': { status: 'available' },
+        'es_teh_manis': { status: 'available' }
+      });
+    });
+    // Firebase returns partial data (only 2 of 3 items)
+    const firebaseData = {
+      'mie_ayam_komplit': { status: 'sold_out' },
+      'teh_anget': { status: 'limited' }
+      // es_teh_manis is missing from firebase
+    };
+    const merged = await page.evaluate((fData) => {
+      return StockService.mergeStockData(fData);
+    }, firebaseData);
+
+    // Firebase data overrides cache
+    expect(merged['mie_ayam_komplit'].status).toBe('sold_out');
+    expect(merged['teh_anget'].status).toBe('limited');
+    // Missing firebase entry keeps cached data
+    expect(merged['es_teh_manis'].status).toBe('available');
+  });
+});
+
+test.describe('Stock Service — Error Indicator', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+  });
+
+  test('shows error indicator when using cached data', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      StockService.showErrorIndicator();
+    });
+
+    const indicator = page.locator('#stock-error-indicator');
+    await expect(indicator).toBeVisible();
+    await expect(indicator).toContainText('Menampilkan data terakhir');
+  });
+
+  test('hides error indicator', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      StockService.showErrorIndicator();
+    });
+    await page.evaluate(() => {
+      StockService.hideErrorIndicator();
+    });
+
+    const indicator = page.locator('#stock-error-indicator');
+    await expect(indicator).toBeHidden();
+  });
+
+  test('tracks cached data usage state', async ({ page }) => {
+    await page.goto('/');
+    let usingCache = await page.evaluate(() => {
+      return StockService.isUsingCachedData();
+    });
+    expect(usingCache).toBe(false);
+
+    await page.evaluate(() => {
+      StockService.setUsingCachedData(true);
+    });
+
+    usingCache = await page.evaluate(() => {
+      return StockService.isUsingCachedData();
+    });
+    expect(usingCache).toBe(true);
+  });
+});
+
+test.describe('Stock Service — Missing and Orphaned Entries', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+  });
+
+  test('handles missing stock entry by defaulting to available', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(() => {
+      return StockService.getStockStatus('new_item_no_firebase_entry', null);
+    });
+    expect(result).toBe('available');
+  });
+
+  test('returns all items from firebase data with normalization', async ({ page }) => {
+    await page.goto('/');
+    const firebaseData = {
+      'mie_ayam_komplit': { status: 'available' },
+      'teh_anget': { status: 'sold_out' },
+      'es_invalid': { status: 'avaiable' }  // invalid typo
+    };
+    const result = await page.evaluate((fData) => {
+      return StockService.processFirebaseData(fData);
+    }, firebaseData);
+
+    expect(result['mie_ayam_komplit'].status).toBe('available');
+    expect(result['teh_anget'].status).toBe('sold_out');
+    // Invalid status normalized to sold_out
+    expect(result['es_invalid'].status).toBe('sold_out');
+  });
+
+  test('saves processed firebase data to cache', async ({ page }) => {
+    await page.goto('/');
+    const firebaseData = {
+      'mie_ayam_komplit': { status: 'sold_out' }
+    };
+    await page.evaluate((fData) => {
+      StockService.processAndCacheFirebaseData(fData);
+    }, firebaseData);
+
+    const cached = await page.evaluate(() => {
+      return StockService.getCachedStockData();
+    });
+    expect(cached).toBeTruthy();
+    expect(cached['mie_ayam_komplit'].status).toBe('sold_out');
+  });
+});

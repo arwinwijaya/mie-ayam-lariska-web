@@ -881,7 +881,7 @@ ul {
   background: var(--color-background);
   border: 3px solid var(--color-primary);
   box-shadow: var(--shadow-lg);
-  padding: var(--space-2xl);
+  padding: var(--space-xl);
   position: relative;
   overflow: hidden;
 }
@@ -897,16 +897,16 @@ ul {
 }
 
 .packages__card--featured .packages__card-name {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
 }
 
 .packages__card--featured .packages__card-price .price {
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-2xl);
 }
 
 .packages__card--featured .packages__card-btn {
-  padding: var(--space-md) var(--space-2xl);
-  font-size: var(--font-size-lg);
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--font-size-base);
 }
 
 /* Lengkap Badge */
@@ -923,7 +923,7 @@ ul {
 
 .packages__card {
   background-color: var(--color-background);
-  padding: var(--space-xl);
+  padding: var(--space-lg);
   border-radius: var(--radius-lg);
   text-align: center;
   box-shadow: var(--shadow-sm);
@@ -992,9 +992,9 @@ ul {
 }
 
 .packages__card-name {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-text);
   margin-bottom: var(--space-xs);
 }
 
@@ -1064,14 +1064,14 @@ ul {
 }
 
 .packages__card-price {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
   font-weight: 800;
   color: var(--color-text);
   margin: var(--space-xs) 0;
 }
 
 .packages__card-price .price {
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 
 .packages__card-price-note {

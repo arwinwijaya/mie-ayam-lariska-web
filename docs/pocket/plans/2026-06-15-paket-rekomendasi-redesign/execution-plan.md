@@ -172,7 +172,7 @@ Steps:
 
 11. Write failing test for: Add package modal
     File: `tests/e2e/admin-packages.spec.js`
-    Test verifies: Given admin clicks "Tambah Paket", When modal opens, Then form shows all fields (name, description, icon, items, price, tag, featured, active, order, whatsappMessage)
+    Test verifies: Given admin clicks "Tambah Paket", When modal opens, Then form shows all fields (name, description, icon, items multi-select from menu, price, tag, featured, active, order, whatsappMessage)
 
 12. Run test — verify FAIL:
     `npx playwright test tests/e2e/admin-packages.spec.js`
@@ -180,7 +180,7 @@ Steps:
 
 13. Implement minimal code to satisfy the test:
     File: `admin/index.html`
-    Implement: Add package modal with all form fields, multi-select for items from menu data
+    Implement: Add package modal with all form fields, multi-select for items loaded from FirebaseService menu data
 
 14. Run test — verify PASS:
     `npx playwright test tests/e2e/admin-packages.spec.js`
@@ -324,6 +324,26 @@ Steps:
     `git add index.html`
     `git commit -m "feat(visitor): add fallback packages data for offline mode"`
 
+11. Write failing test for: Real-time updates from admin changes
+    File: `tests/e2e/customer-packages.spec.js`
+    Test verifies: Given visitor on page, When admin adds/updates package, Then visitor page updates without refresh
+
+12. Run test — verify FAIL:
+    `npx playwright test tests/e2e/customer-packages.spec.js`
+    Expected failure: visitor page does not update in real-time
+
+13. Implement minimal code to satisfy the test:
+    File: `index.html`
+    Implement: Register onAllPackagesChange listener to re-render packages when data changes
+
+14. Run test — verify PASS:
+    `npx playwright test tests/e2e/customer-packages.spec.js`
+    Expected: PASS
+
+15. Commit:
+    `git add index.html`
+    `git commit -m "feat(visitor): add real-time packages sync"`
+
 ## REFERENCES LOADED
 - `docs/pocket/spec/2026-06-15-paket-rekomendasi-redesign/spec.md` — Rule 3: Dynamic Data from Firebase
 - `index.html` — Current hardcoded packages section (lines 478-566)
@@ -435,17 +455,17 @@ Steps:
     `git add css/style.css`
     `git commit -m "feat(visitor): add featured card visual styles"`
 
-11. Write failing test for: "Praktis" badge replaces "Hemat 0k"
+11. Write failing test for: "Lengkap" badge replaces "Hemat 0k"
     File: `tests/e2e/customer-packages.spec.js`
-    Test verifies: Given package card rendered, When no discount, Then "Praktis" badge shown instead of "Hemat 0k"
+    Test verifies: Given package card rendered, When no discount, Then "Lengkap" badge shown instead of "Hemat 0k"
 
 12. Run test — verify FAIL:
     `npx playwright test tests/e2e/customer-packages.spec.js`
-    Expected failure: "Hemat 0k" still showing
+    Expected failure: "Hemat 0k" still showing or "Lengkap" badge missing
 
 13. Implement minimal code to satisfy the test:
     File: `index.html`, `css/style.css`
-    Implement: Replace "Hemat 0k" with "Praktis" badge in rendering logic. Add .packages__badge--praktis styles.
+    Implement: Replace "Hemat 0k" with "Lengkap" badge in rendering logic. Add .packages__badge--lengkap styles.
 
 14. Run test — verify PASS:
     `npx playwright test tests/e2e/customer-packages.spec.js`
@@ -453,7 +473,7 @@ Steps:
 
 15. Commit:
     `git add index.html css/style.css`
-    `git commit -m "feat(visitor): replace discount badge with Praktis badge"`
+    `git commit -m "feat(visitor): replace discount badge with Lengkap badge"`
 
 16. Write failing test for: Responsive layout
     File: `tests/e2e/customer-packages.spec.js`
@@ -476,7 +496,7 @@ Steps:
     `git commit -m "feat(visitor): add responsive packages grid layout"`
 
 ## REFERENCES LOADED
-- `docs/pocket/spec/2026-06-15-paket-rekomendasi-redesign/spec.md` — Rules 1, 2, 5, 8
+- `docs/pocket/spec/2026-06-15-paket-rekomendasi-redesign/spec.md` — Rules 1, 2, 3, 8
 - `index.html` — Current packages section structure
 - `css/style.css` — Current packages styles (lines 659-858), CSS custom properties
 
@@ -501,7 +521,7 @@ Verification — task is DONE when all pass:
 Given packages loaded, When featured exists, Then featured card full-width at top
 Given featured card, When rendered, Then gradient background, shadow-lg, top accent bar
 Given non-featured cards, When rendered, Then subtle style (shadow-sm, solid background)
-Given package card, When rendered, Then "Praktis" badge instead of "Hemat 0k"
+Given package card, When rendered, Then "Lengkap" badge instead of "Hemat 0k"
 Given viewport < 768px, When rendered, Then 1 column layout
 Given viewport 768-1023px, When rendered, Then 2+1 layout
 Given viewport >= 1024px, When rendered, Then 3 column grid
@@ -514,7 +534,7 @@ Format: DONE
 Must-have:
   - Featured card full-width at top
   - Visual hierarchy (gradient, shadow, accent bar)
-  - "Praktis" badge (not "Hemat 0k")
+  - "Lengkap" badge (not "Hemat 0k")
   - Responsive breakpoints
   - Preserve BEM naming
   - Tests written BEFORE implementation (TDD)

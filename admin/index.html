@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin — Mie Ayam Lariska</title>
+  <meta name="description" content="Dashboard admin untuk mengelola stok menu Mie Ayam Lariska">
+  
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  
+  <!-- Application Scripts -->
+  <script src="../js/admin-auth.js"></script>
+  <script src="../js/firebase-config.js"></script>
+</head>
+<body>
+  <div class="admin-dashboard">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="admin-header__brand">
+        <h1 class="admin-header__title">Mie Ayam Lariska</h1>
+        <span class="admin-header__subtitle">Dashboard Admin</span>
+      </div>
+      <button id="logout-button" class="admin-header__logout">Keluar</button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+      <!-- Status Info -->
+      <div class="admin-status">
+        <p class="admin-status__text">Kelola stok menu Mie Ayam Lariska</p>
+        <p class="admin-status__info">Status: <span id="connection-status">Menghubungkan...</span></p>
+      </div>
+
+      <!-- Stock Management -->
+      <div class="admin-stock">
+        <h2 class="admin-stock__title">Stok Menu</h2>
+        
+        <!-- Mie Ayam -->
+        <div class="admin-stock__category">
+          <h3 class="admin-stock__category-title">Mie Ayam</h3>
+          <div class="admin-stock__grid" id="mie-ayam-grid">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- Minuman -->
+        <div class="admin-stock__category">
+          <h3 class="admin-stock__category-title">Minuman</h3>
+          <div class="admin-stock__grid" id="minuman-grid">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- Topping Tambahan -->
+        <div class="admin-stock__category">
+          <h3 class="admin-stock__category-title">Topping Tambahan</h3>
+          <div class="admin-stock__grid" id="topping-grid">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // Check authentication
+      AdminAuth.requireAuth();
+
+      // Menu items configuration
+      var MENU_ITEMS = {
+        'mie-ayam-grid': [
+          { id: 'mie_ayam_mini', name: 'Mie Ayam Mini' },
+          { id: 'mie_ayam_biasa', name: 'Mie Ayam Biasa' },
+          { id: 'mie_ayam_pangsit', name: 'Mie Ayam Pangsit' },
+          { id: 'mie_ayam_ceker', name: 'Mie Ayam Ceker' },
+          { id: 'mie_ayam_bakso', name: 'Mie Ayam Bakso' },
+          { id: 'mie_ayam_komplit', name: 'Mie Ayam Komplit' },
+          { id: 'mie_ayam_sayap', name: 'Mie Ayam Sayap' },
+          { id: 'mie_ayam_telur_puyuh', name: 'Mie Ayam Telur Puyuh' },
+          { id: 'mie_ayam_tulangan', name: 'Mie Ayam Tulangan' },
+          { id: 'mie_ayam_kepala', name: 'Mie Ayam Kepala' },
+          { id: 'pangsit_kuah', name: 'Pangsit Kuah' }
+        ],
+        'minuman-grid': [
+          { id: 'teh_anget', name: 'Teh Anget' },
+          { id: 'es_teh_manis', name: 'Es Teh Manis' },
+          { id: 'es_jeruk_peras', name: 'Es Jeruk Peras' },
+          { id: 'es_nutrisari', name: 'Es Nutrisari' },
+          { id: 'es_tawar', name: 'Es Tawar' }
+        ],
+        'topping-grid': [
+          { id: 'ceker', name: 'Ceker' },
+          { id: 'pangsit_rebus', name: 'Pangsit Rebus' },
+          { id: 'bakso', name: 'Bakso' },
+          { id: 'telur_puyuh', name: 'Telur Puyuh' },
+          { id: 'kepala_ayam', name: 'Kepala Ayam' },
+          { id: 'sayap', name: 'Sayap' },
+          { id: 'tulangan', name: 'Tulangan' },
+          { id: 'pangsit_goreng', name: 'Pangsit Goreng' }
+        ]
+      };
+
+      // Initialize logout button
+      document.getElementById('logout-button').addEventListener('click', function() {
+        AdminAuth.logout();
+      });
+
+      // Create stock item card
+      function createStockCard(item, status) {
+        var card = document.createElement('div');
+        card.className = 'admin-stock__card';
+        card.setAttribute('data-item-id', item.id);
+
+        var name = document.createElement('h4');
+        name.className = 'admin-stock__card-name';
+        name.textContent = item.name;
+
+        var select = document.createElement('select');
+        select.className = 'admin-stock__select';
+        select.setAttribute('data-item-id', item.id);
+
+        var statuses = [
+          { value: 'available', label: 'Tersedia' },
+          { value: 'limited', label: 'Terbatas' },
+          { value: 'sold_out', label: 'Habis' }
+        ];
+
+        statuses.forEach(function(s) {
+          var option = document.createElement('option');
+          option.value = s.value;
+          option.textContent = s.label;
+          if (s.value === status) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        });
+
+        select.addEventListener('change', function() {
+          var itemId = this.getAttribute('data-item-id');
+          var newStatus = this.value;
+          
+          FirebaseService.updateStock(itemId, newStatus).then(function() {
+            console.log('Stock updated:', itemId, newStatus);
+          }).catch(function(error) {
+            console.error('Error updating stock:', error);
+            alert('Gagal mengupdate stok. Silakan coba lagi.');
+          });
+        });
+
+        card.appendChild(name);
+        card.appendChild(select);
+
+        return card;
+      }
+
+      // Populate stock grids
+      function populateStockGrids() {
+        Object.keys(MENU_ITEMS).forEach(function(gridId) {
+          var grid = document.getElementById(gridId);
+          if (!grid) return;
+
+          grid.innerHTML = '';
+
+          MENU_ITEMS[gridId].forEach(function(item) {
+            var card = createStockCard(item, 'available');
+            grid.appendChild(card);
+          });
+        });
+      }
+
+      // Initialize stock data from Firebase
+      function initStockData() {
+        FirebaseService.onAllStockChange(function(stockData) {
+          console.log('Stock data received:', stockData);
+
+          Object.keys(MENU_ITEMS).forEach(function(gridId) {
+            MENU_ITEMS[gridId].forEach(function(item) {
+              var card = document.querySelector('[data-item-id="' + item.id + '"]');
+              if (!card) return;
+
+              var select = card.querySelector('select');
+              if (!select) return;
+
+              var itemData = stockData[item.id];
+              if (itemData && itemData.status) {
+                select.value = itemData.status;
+              }
+            });
+          });
+
+          document.getElementById('connection-status').textContent = 'Terhubung';
+          document.getElementById('connection-status').style.color = '#2E7D32';
+        });
+
+        // Monitor connection status
+        FirebaseService.db.ref('.info/connected').on('value', function(snapshot) {
+          var connected = snapshot.val();
+          var statusEl = document.getElementById('connection-status');
+          
+          if (connected) {
+            statusEl.textContent = 'Terhubung';
+            statusEl.style.color = '#2E7D32';
+          } else {
+            statusEl.textContent = 'Terputus';
+            statusEl.style.color = '#C40000';
+          }
+        });
+      }
+
+      // Initialize
+      populateStockGrids();
+      initStockData();
+    })();
+  </script>
+</body>
+</html>

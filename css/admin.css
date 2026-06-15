@@ -129,8 +129,18 @@
 }
 
 .admin-header__brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-header__title {
   font-size: var(--font-size-lg);
   font-weight: 700;
+}
+
+.admin-header__subtitle {
+  font-size: var(--font-size-xs);
+  opacity: 0.8;
 }
 
 .admin-header__logout {
@@ -150,17 +160,106 @@
   color: var(--color-primary);
 }
 
-.admin-content {
+/* === Admin Main Content === */
+.admin-main {
   padding: var(--space-xl);
   max-width: var(--max-width);
   margin: 0 auto;
 }
 
-.admin-content__title {
+/* === Admin Status === */
+.admin-status {
+  background-color: var(--color-surface);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-status__text {
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+}
+
+.admin-status__info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+}
+
+/* === Admin Stock Management === */
+.admin-stock {
+  background-color: var(--color-surface);
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-stock__title {
   font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--color-text);
+  margin-bottom: var(--space-xl);
+  text-align: center;
+}
+
+.admin-stock__category {
+  margin-bottom: var(--space-2xl);
+}
+
+.admin-stock__category:last-child {
+  margin-bottom: 0;
+}
+
+.admin-stock__category-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-primary);
   margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--color-secondary);
+}
+
+.admin-stock__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.admin-stock__card {
+  background-color: var(--color-background);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.admin-stock__card:hover {
+  border-color: var(--color-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-stock__card-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+}
+
+.admin-stock__select {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.admin-stock__select:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 
 /* === Responsive === */

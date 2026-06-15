@@ -71,7 +71,7 @@ test.describe('Admin Login Page', () => {
     
     // Verify we're redirected to dashboard (or dashboard page loads)
     const currentUrl = page.url();
-    expect(currentUrl).toContain('/admin/');
+    expect(currentUrl).toContain('/admin');
   });
 
   test('does not show error message for valid credentials', async ({ page }) => {

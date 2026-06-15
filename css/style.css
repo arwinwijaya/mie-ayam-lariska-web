@@ -878,8 +878,8 @@ ul {
 
 /* Featured Card */
 .packages__card--featured {
-  background: linear-gradient(135deg, #FFF5F5 0%, #FFFBF0 100%);
-  border-color: var(--color-primary);
+  background: var(--color-background);
+  border: 3px solid var(--color-primary);
   box-shadow: var(--shadow-lg);
   padding: var(--space-2xl);
   position: relative;
@@ -962,16 +962,16 @@ ul {
 }
 
 .packages__card-badge {
-  position: absolute;
-  top: 12px;
-  right: -28px;
-  background: var(--color-primary);
-  color: white;
+  display: block;
+  text-align: center;
+  margin: 0 auto var(--space-sm);
+  width: fit-content;
+  background: var(--color-secondary);
+  color: var(--color-text);
   font-size: var(--font-size-xs);
   font-weight: 700;
-  padding: 4px 36px;
-  transform: rotate(45deg);
-  z-index: 1;
+  padding: 4px 16px;
+  border-radius: var(--radius-full);
 }
 
 /* Custom Card */

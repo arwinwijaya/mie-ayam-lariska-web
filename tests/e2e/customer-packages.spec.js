@@ -33,7 +33,7 @@ test.describe('Customer Packages Display', () => {
     await expect(featuredCard).toBeAttached();
   });
 
-  test('displays featured card with gradient and accent bar', async ({ page }) => {
+  test('displays featured card with accent bar and badge', async ({ page }) => {
     const featuredCard = page.locator('.packages__card--featured');
     await expect(featuredCard).toBeAttached();
 
@@ -62,12 +62,12 @@ test.describe('Customer Packages Display', () => {
     const featuredClass = await featuredCard.getAttribute('class');
     expect(featuredClass).toContain('packages__card--featured');
 
-    // Check featured card has gradient background (via computed style)
-    const hasGradient = await featuredCard.evaluate((el) => {
+    // Check featured card has solid background (not gradient)
+    const hasSolidBackground = await featuredCard.evaluate((el) => {
       const style = window.getComputedStyle(el);
-      return style.backgroundImage.includes('gradient');
+      return !style.backgroundImage.includes('gradient');
     });
-    expect(hasGradient).toBe(true);
+    expect(hasSolidBackground).toBe(true);
 
     // On desktop, featured card should be in separate container above grid
     const featuredContainer = page.locator('.packages__featured');

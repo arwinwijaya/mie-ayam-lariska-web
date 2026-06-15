@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Initialize Stock Data — Mie Ayam Lariska</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #FFF1D6;
+    }
+    h1 {
+      color: #C40000;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-weight: 600;
+    }
+    .status.loading {
+      background-color: #FFF8E1;
+      color: #F9A825;
+    }
+    .status.success {
+      background-color: #E8F5E9;
+      color: #2E7D32;
+    }
+    .status.error {
+      background-color: #FFEBEE;
+      color: #C40000;
+    }
+    button {
+      background-color: #C40000;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: block;
+      margin: 20px auto;
+    }
+    button:hover {
+      background-color: #A30000;
+    }
+    button:disabled {
+      background-color: #8A7A5F;
+      cursor: not-allowed;
+    }
+    #log {
+      background: #1F1F1F;
+      color: #00FF00;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h1>🍜 Mie Ayam Lariska</h1>
+  
+  <div class="card">
+    <h2>Initialize Stock Data</h2>
+    <p>Halaman ini akan menginisialisasi data stok menu ke Firebase Realtime Database.</p>
+    
+    <div id="status" class="status loading">Menunggu inisialisasi...</div>
+    
+    <button id="init-button" onclick="initializeStock()">Initialize Stock Data</button>
+    
+    <h3>Log:</h3>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    // Firebase configuration
+    var firebaseConfig = {
+      apiKey: 'AIzaSyCXXhBLtrRlGH-exUdEui4DPCDejKwMkzE',
+      authDomain: 'mie-ayam-lariska-web.firebaseapp.com',
+      projectId: 'mie-ayam-lariska-web',
+      storageBucket: 'mie-ayam-lariska-web.firebasestorage.app',
+      messagingSenderId: '451301198230',
+      appId: '1:451301198230:web:9e8203bac802544d0875b7',
+      measurementId: 'G-FPJFV1HMVD'
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+    var stockRef = db.ref('stock');
+
+    // Initial stock data
+    var INITIAL_STOCK_DATA = {
+      'mie_ayam_mini': { status: 'available' },
+      'mie_ayam_biasa': { status: 'available' },
+      'mie_ayam_pangsit': { status: 'available' },
+      'mie_ayam_ceker': { status: 'available' },
+      'mie_ayam_bakso': { status: 'available' },
+      'mie_ayam_komplit': { status: 'available' },
+      'mie_ayam_sayap': { status: 'available' },
+      'mie_ayam_telur_puyuh': { status: 'available' },
+      'mie_ayam_tulangan': { status: 'available' },
+      'mie_ayam_kepala': { status: 'available' },
+      'pangsit_kuah': { status: 'available' },
+      'teh_anget': { status: 'available' },
+      'es_teh_manis': { status: 'available' },
+      'es_jeruk_peras': { status: 'available' },
+      'es_nutrisari': { status: 'available' },
+      'es_tawar': { status: 'available' },
+      'ceker': { status: 'available' },
+      'pangsit_rebus': { status: 'available' },
+      'bakso': { status: 'available' },
+      'telur_puyuh': { status: 'available' },
+      'kepala_ayam': { status: 'available' },
+      'sayap': { status: 'available' },
+      'tulangan': { status: 'available' },
+      'pangsit_goreng': { status: 'available' }
+    };
+
+    // Log function
+    function log(message) {
+      var logEl = document.getElementById('log');
+      var timestamp = new Date().toLocaleTimeString();
+      logEl.textContent += '[' + timestamp + '] ' + message + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // Update status
+    function setStatus(message, type) {
+      var statusEl = document.getElementById('status');
+      statusEl.textContent = message;
+      statusEl.className = 'status ' + type;
+    }
+
+    // Initialize stock data
+    function initializeStock() {
+      var button = document.getElementById('init-button');
+      button.disabled = true;
+      
+      setStatus('Menginisialisasi data stok...', 'loading');
+      log('Memulai inisialisasi data stok...');
+
+      // Check connection first
+      db.ref('.info/connected').on('value', function(snapshot) {
+        var connected = snapshot.val();
+        if (connected) {
+          log('✅ Terhubung ke Firebase');
+        } else {
+          log('❌ Terputus dari Firebase');
+        }
+      });
+
+      // Seed initial stock data
+      stockRef.once('value').then(function(snapshot) {
+        var existingData = snapshot.val();
+        log('Data existing di Firebase: ' + (existingData ? Object.keys(existingData).length + ' items' : 'kosong'));
+
+        var updates = {};
+        var hasNewEntries = false;
+
+        Object.keys(INITIAL_STOCK_DATA).forEach(function(itemId) {
+          if (!existingData || !existingData[itemId]) {
+            updates[itemId] = INITIAL_STOCK_DATA[itemId];
+            hasNewEntries = true;
+            log('  + Menambahkan: ' + itemId);
+          }
+        });
+
+        if (hasNewEntries) {
+          log('Menyimpan ' + Object.keys(updates).length + ' item baru...');
+          return stockRef.update(updates);
+        } else {
+          log('Semua data sudah ada, tidak perlu update');
+          return Promise.resolve();
+        }
+      }).then(function() {
+        log('✅ Data stok berhasil diinisialisasi!');
+        setStatus('Data stok berhasil diinisialisasi! ✅', 'success');
+        
+        // Verify data
+        return stockRef.once('value');
+      }).then(function(snapshot) {
+        var data = snapshot.val();
+        var count = data ? Object.keys(data).length : 0;
+        log('Total item di Firebase: ' + count);
+        
+        // Show summary
+        log('\n=== Ringkasan Data ===');
+        Object.keys(data).forEach(function(key) {
+          log('  ' + key + ': ' + data[key].status);
+        });
+        
+        button.disabled = false;
+        button.textContent = 'Refresh Data';
+      }).catch(function(error) {
+        log('❌ Error: ' + error.message);
+        setStatus('Error: ' + error.message, 'error');
+        button.disabled = false;
+      });
+    }
+
+    // Auto-check connection on load
+    window.addEventListener('load', function() {
+      log('Memeriksa koneksi Firebase...');
+      
+      db.ref('.info/connected').on('value', function(snapshot) {
+        var connected = snapshot.val();
+        if (connected) {
+          log('✅ Terhubung ke Firebase');
+          setStatus('Siap untuk inisialisasi', 'loading');
+        } else {
+          log('❌ Terputus dari Firebase');
+          setStatus('Terputus dari Firebase', 'error');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

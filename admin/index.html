@@ -178,29 +178,9 @@
 
       // Initialize stock data from Firebase
       function initStockData() {
-        FirebaseService.onAllStockChange(function(stockData) {
-          console.log('Stock data received:', stockData);
+        console.log('[Admin] Initializing stock data listener...');
 
-          Object.keys(MENU_ITEMS).forEach(function(gridId) {
-            MENU_ITEMS[gridId].forEach(function(item) {
-              var card = document.querySelector('[data-item-id="' + item.id + '"]');
-              if (!card) return;
-
-              var select = card.querySelector('select');
-              if (!select) return;
-
-              var itemData = stockData[item.id];
-              if (itemData && itemData.status) {
-                select.value = itemData.status;
-              }
-            });
-          });
-
-          document.getElementById('connection-status').textContent = 'Terhubung';
-          document.getElementById('connection-status').style.color = '#2E7D32';
-        });
-
-        // Monitor connection status
+        // Monitor connection status first
         FirebaseService.db.ref('.info/connected').on('value', function(snapshot) {
           var connected = snapshot.val();
           var statusEl = document.getElementById('connection-status');
@@ -208,14 +188,59 @@
           if (connected) {
             statusEl.textContent = 'Terhubung';
             statusEl.style.color = '#2E7D32';
+            console.log('[Admin] Connected to Firebase');
           } else {
             statusEl.textContent = 'Terputus';
             statusEl.style.color = '#C40000';
+            console.log('[Admin] Disconnected from Firebase');
           }
+        });
+
+        // Listen to stock changes
+        FirebaseService.onAllStockChange(function(stockData) {
+          console.log('[Admin] Stock data received:', stockData);
+
+          if (!stockData || Object.keys(stockData).length === 0) {
+            console.log('[Admin] No stock data found, initializing...');
+            initializeStockData();
+            return;
+          }
+
+          updateStockGrids(stockData);
+        });
+      }
+
+      // Update stock grids with data from Firebase
+      function updateStockGrids(stockData) {
+        Object.keys(MENU_ITEMS).forEach(function(gridId) {
+          MENU_ITEMS[gridId].forEach(function(item) {
+            var card = document.querySelector('[data-item-id="' + item.id + '"]');
+            if (!card) return;
+
+            var select = card.querySelector('select');
+            if (!select) return;
+
+            var itemData = stockData[item.id];
+            if (itemData && itemData.status) {
+              select.value = itemData.status;
+            }
+          });
+        });
+      }
+
+      // Initialize stock data if empty
+      function initializeStockData() {
+        console.log('[Admin] Seeding initial stock data...');
+        
+        FirebaseService.seedInitialStock().then(function() {
+          console.log('[Admin] Stock data initialized successfully');
+        }).catch(function(error) {
+          console.error('[Admin] Error initializing stock:', error);
         });
       }
 
       // Initialize
+      console.log('[Admin] Initializing dashboard...');
       populateStockGrids();
       initStockData();
     })();

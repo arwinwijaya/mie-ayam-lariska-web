@@ -11,7 +11,7 @@
     {
       "order": 1,
       "file": "execution-plan.md",
-      "status": "WAITING",
+      "status": "REVIEW",
       "tasks": [
         {
           "id": "T1",
@@ -35,14 +35,16 @@
         {
           "id": "T4",
           "name": "Visitor UI Redesign",
-          "status": "WAITING",
-          "depends": "T3"
+          "status": "DONE",
+          "depends": "T3",
+          "done_sha": "d4ef56fbb22cea3aecad79a7def39c76c869df4e"
         },
         {
           "id": "T5",
           "name": "E2E Tests",
-          "status": "WAITING",
-          "depends": "T2, T4"
+          "status": "DONE",
+          "depends": "T2, T4",
+          "done_sha": "735bb90fedc28596341f93cd38b2bb46410aaad7"
         }
       ]
     }

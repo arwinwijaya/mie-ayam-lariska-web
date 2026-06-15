@@ -768,9 +768,23 @@ ul {
   background-color: var(--color-surface);
 }
 
-.faq__list {
-  max-width: 720px;
+.faq__subtitle {
+  text-align: center;
+  color: var(--color-text-light);
+  font-size: var(--font-size-base);
+  margin-top: calc(-1 * var(--space-md));
+  margin-bottom: var(--space-2xl);
+}
+
+.faq__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+  max-width: 900px;
   margin: 0 auto;
+}
+
+.faq__column {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -1049,6 +1063,11 @@ ul {
 
   .location__map-placeholder {
     height: 300px;
+  }
+
+  /* FAQ 2 columns */
+  .faq__grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   /* Footer */

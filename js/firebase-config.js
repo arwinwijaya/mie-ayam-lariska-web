@@ -51,6 +51,7 @@
   firebase.initializeApp(firebaseConfig);
   var db = firebase.database();
   var menuRef = db.ref('menu');
+  var packagesRef = db.ref('packages');
 
   // ---------------------------------------------------------------------------
   // Initial menu data — all menu items with full data structure
@@ -398,6 +399,149 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Initial packages data — recommendation packages with full data structure
+  // Package IDs follow slug format: lowercase, underscores for spaces
+  // ---------------------------------------------------------------------------
+  var INITIAL_PACKAGES_DATA = {
+    'paket_hemat': {
+      name: 'Paket Hemat',
+      description: 'Mie Ayam Biasa + Es Teh Manis',
+      icon: '🍜',
+      items: ['mie_ayam_biasa', 'es_teh_manis'],
+      price: 13000,
+      tag: 'Basic',
+      isFeatured: false,
+      isActive: true,
+      whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Hemat',
+      order: 1
+    },
+    'paket_favorit': {
+      name: 'Paket Favorit',
+      description: 'Mie Ayam Pangsit + Es Teh Manis',
+      icon: '🔥',
+      items: ['mie_ayam_pangsit', 'es_teh_manis'],
+      price: 15000,
+      tag: 'Best Seller',
+      isFeatured: true,
+      isActive: true,
+      whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Favorit',
+      order: 2
+    },
+    'paket_kenyang': {
+      name: 'Paket Kenyang',
+      description: 'Mie Ayam Komplit + Es Teh Manis',
+      icon: '😋',
+      items: ['mie_ayam_komplit', 'es_teh_manis'],
+      price: 18000,
+      tag: 'Puas',
+      isFeatured: false,
+      isActive: true,
+      whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Kenyang',
+      order: 3
+    },
+    'topping_suka_suka': {
+      name: 'Topping Suka-Suka',
+      description: 'Pilih mie ayam favoritmu, lalu tambah topping sesuai selera!',
+      icon: '✨',
+      items: [],
+      price: 2000,
+      tag: 'Custom',
+      isFeatured: false,
+      isActive: true,
+      whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Topping Suka-Suka',
+      order: 4
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Packages management functions
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Seed initial packages data to Firebase.
+   * Only creates entries that do not already exist — safe to call repeatedly.
+   * @returns {Promise<void>}
+   */
+  function seedInitialPackages() {
+    return packagesRef.once('value').then(function (snapshot) {
+      var existingData = snapshot.val();
+      var updates = {};
+      var hasNewEntries = false;
+
+      Object.keys(INITIAL_PACKAGES_DATA).forEach(function (packageId) {
+        if (!existingData || !existingData[packageId]) {
+          updates[packageId] = INITIAL_PACKAGES_DATA[packageId];
+          hasNewEntries = true;
+        }
+      });
+
+      if (hasNewEntries) {
+        return packagesRef.update(updates);
+      }
+    });
+  }
+
+  /**
+   * Add a new package.
+   * @param {Object} data - Package data
+   * @returns {Promise<void>}
+   */
+  function addPackage(data) {
+    var packageId = data.name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '_');
+    return packagesRef.child(packageId).set(data);
+  }
+
+  /**
+   * Get all packages.
+   * @returns {Promise<Object>} Full packages data object
+   */
+  function getPackages() {
+    return packagesRef.once('value').then(function (snapshot) {
+      return snapshot.val() || {};
+    });
+  }
+
+  /**
+   * Update a package.
+   * @param {string} packageId - The package ID
+   * @param {Object} data - Object with fields to update
+   * @returns {Promise<void>}
+   */
+  function updatePackage(packageId, data) {
+    return packagesRef.child(packageId).update(data);
+  }
+
+  /**
+   * Delete a package.
+   * @param {string} packageId - The package ID
+   * @returns {Promise<void>}
+   */
+  function deletePackage(packageId) {
+    return packagesRef.child(packageId).remove();
+  }
+
+  /**
+   * Listen to all packages changes at once.
+   * @param {function} callback - Called with the full packages data object
+   * @returns {function} Unsubscribe function
+   */
+  function onAllPackagesChange(callback) {
+    function handler(snapshot) {
+      var data = snapshot.val() || {};
+      callback(data);
+    }
+
+    packagesRef.on('value', handler);
+
+    return function unsubscribe() {
+      packagesRef.off('value', handler);
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // Backward compatibility aliases
   // ---------------------------------------------------------------------------
   var stockRef = menuRef; // Alias for backward compatibility
@@ -441,10 +585,12 @@
     db:                   db,
     menuRef:              menuRef,
     stockRef:             stockRef, // backward compat
+    packagesRef:          packagesRef,
 
     // Data
     INITIAL_MENU_DATA:    INITIAL_MENU_DATA,
     INITIAL_STOCK_DATA:   INITIAL_STOCK_DATA, // backward compat
+    INITIAL_PACKAGES_DATA: INITIAL_PACKAGES_DATA,
 
     // Menu functions
     seedInitialMenu:      seedInitialMenu,
@@ -457,6 +603,14 @@
     nameToSlug:           nameToSlug,
     isValidStatus:        isValidStatus,
     getStatusText:        getStatusText,
+
+    // Packages functions
+    seedInitialPackages:  seedInitialPackages,
+    addPackage:           addPackage,
+    getPackages:          getPackages,
+    updatePackage:        updatePackage,
+    deletePackage:        deletePackage,
+    onAllPackagesChange:  onAllPackagesChange,
 
     // Backward compatibility
     seedInitialStock:     seedInitialStock,

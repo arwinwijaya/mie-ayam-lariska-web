@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Init Menu Data — Mie Ayam Lariska</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+      background: #FFF1D6;
+      color: #1F1F1F;
+    }
+    h1 { color: #C40000; margin-bottom: 8px; }
+    .subtitle { color: #666; margin-bottom: 24px; }
+    .status {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .info    { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    pre {
+      background: #1F1F1F;
+      color: #e0e0e0;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    button {
+      background: #C40000;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+    button:hover { background: #a30000; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .summary {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 16px;
+      text-align: center;
+    }
+    .summary.pass { background: #C40000; color: #FFF1D6; }
+    .summary.fail { background: #721c24; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <h1>🍜 Inisialisasi Menu Data</h1>
+  <p class="subtitle">Mie Ayam Lariska — Firebase Realtime Database</p>
+
+  <button id="init-button" onclick="initializeData()">Initialize Menu Data</button>
+
+  <div id="status-area">
+    <div class="status info">Klik tombol di atas untuk menginisialisasi data menu ke Firebase.</div>
+  </div>
+
+  <div id="data-preview" style="display:none;">
+    <h3>Data yang akan diinisialisasi:</h3>
+    <pre id="preview-content"></pre>
+  </div>
+
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+  <script>
+    // Firebase config (same as firebase-config.js)
+    var firebaseConfig = {
+      apiKey: 'AIzaSyCXXhBLtrRlGH-exUdEui4DPCDejKwMkzE',
+      authDomain: 'mie-ayam-lariska-web.firebaseapp.com',
+      databaseURL: 'https://mie-ayam-lariska-web-default-rtdb.asia-southeast1.firebasedatabase.app',
+      projectId: 'mie-ayam-lariska-web',
+      storageBucket: 'mie-ayam-lariska-web.firebasestorage.app',
+      messagingSenderId: '451301198230',
+      appId: '1:451301198230:web:9e8203bac802544d0875b7',
+      measurementId: 'G-FPJFV1HMVD'
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    // Menu data to initialize
+    var MENU_DATA = {
+      "menu": {
+        "mie_ayam": [
+          { "name": "Mie Ayam Mini", "price": 5000, "display_price": "5k" },
+          { "name": "Mie Ayam Biasa", "price": 10000, "display_price": "10k" },
+          { "name": "Mie Ayam Pangsit", "price": 12000, "display_price": "12k" },
+          { "name": "Mie Ayam Ceker", "price": 12000, "display_price": "12k" },
+          { "name": "Mie Ayam Bakso", "price": 12000, "display_price": "12k" },
+          { "name": "Mie Ayam Komplit", "price": 15000, "display_price": "15k", "description": "Isi ceker, pangsit, dan bakso" },
+          { "name": "Mie Ayam Sayap", "price": 13000, "display_price": "13k" },
+          { "name": "Mie Ayam Telur Puyuh", "price": 12000, "display_price": "12k" },
+          { "name": "Mie Ayam Tulangan", "price": 13000, "display_price": "13k" },
+          { "name": "Mie Ayam Kepala", "price": 12000, "display_price": "12k" },
+          { "name": "Pangsit Kuah", "price": 10000, "display_price": "10k" }
+        ],
+        "minuman": [
+          { "name": "Teh Anget", "price": 2000, "display_price": "2k" },
+          { "name": "Es Teh Manis", "price": 3000, "display_price": "3k" },
+          { "name": "Es Jeruk Peras", "price": 4000, "display_price": "4k" },
+          { "name": "Es Nutrisari", "price": 3000, "display_price": "3k" },
+          { "name": "Es Tawar", "price": 1000, "display_price": "1k" }
+        ],
+        "topping_tambahan": [
+          { "name": "Ceker", "price": 2000, "display_price": "2k" },
+          { "name": "Pangsit Rebus", "price": 2000, "display_price": "2k" },
+          { "name": "Bakso", "price": 2000, "display_price": "2k" },
+          { "name": "Telur Puyuh", "price": 2000, "display_price": "2k" },
+          { "name": "Kepala Ayam", "price": 2000, "display_price": "2k" },
+          { "name": "Sayap", "price": 3000, "display_price": "3k" },
+          { "name": "Tulangan", "price": 3000, "display_price": "3k" },
+          { "name": "Pangsit Goreng", "price": 2000, "display_price": "2k" }
+        ]
+      },
+      "recommended_packages": [
+        {
+          "name": "Paket Hemat",
+          "items": ["Mie Ayam Biasa", "Es Teh Manis"],
+          "starting_price": 13000,
+          "display_price": "Mulai dari 13k"
+        },
+        {
+          "name": "Paket Favorit",
+          "items": ["Mie Ayam Pangsit", "Es Teh Manis"],
+          "starting_price": 15000,
+          "display_price": "Mulai dari 15k"
+        },
+        {
+          "name": "Paket Kenyang",
+          "items": ["Mie Ayam Komplit", "Es Teh Manis"],
+          "starting_price": 18000,
+          "display_price": "Mulai dari 18k"
+        },
+        {
+          "name": "Paket Topping Suka-Suka",
+          "description": "Pilih mie ayam favoritmu, lalu tambah topping sesuai selera mulai dari 2k.",
+          "starting_price": 2000,
+          "display_price": "Topping mulai dari 2k"
+        }
+      ]
+    };
+
+    // Show preview
+    document.getElementById('preview-content').textContent = JSON.stringify(MENU_DATA, null, 2);
+    document.getElementById('data-preview').style.display = 'block';
+
+    function addStatus(type, message) {
+      var statusArea = document.getElementById('status-area');
+      var div = document.createElement('div');
+      div.className = 'status ' + type;
+      div.textContent = message;
+      statusArea.appendChild(div);
+    }
+
+    function initializeData() {
+      var button = document.getElementById('init-button');
+      button.disabled = true;
+      button.textContent = 'Menginisialisasi...';
+      document.getElementById('status-area').innerHTML = '';
+
+      addStatus('pending', '⏳ Menghubungkan ke Firebase...');
+
+      // First, check connection
+      db.ref('.info/connected').on('value', function(snap) {
+        if (snap.val() === true) {
+          addStatus('success', '✅ Terhubung ke Firebase Realtime Database');
+
+          // Write the data
+          addStatus('pending', '⏳ Menulis data menu ke Firebase...');
+
+          db.ref().set(MENU_DATA)
+            .then(function() {
+              addStatus('success', '✅ Data menu berhasil diinisialisasi!');
+              addStatus('info', '📊 Data yang ditulis:');
+              addStatus('info', '   - menu/mie_ayam: 11 items');
+              addStatus('info', '   - menu/minuman: 5 items');
+              addStatus('info', '   - menu/topping_tambahan: 8 items');
+              addStatus('info', '   - recommended_packages: 4 packages');
+
+              // Verify by reading back
+              addStatus('pending', '⏳ Memverifikasi data...');
+              return db.ref().once('value');
+            })
+            .then(function(snapshot) {
+              var data = snapshot.val();
+              if (data && data.menu) {
+                addStatus('success', '✅ Verifikasi berhasil! Data tersimpan di Firebase.');
+                
+                // Show summary
+                var summary = document.createElement('div');
+                summary.className = 'summary pass';
+                summary.textContent = 'INISIALISASI BERHASIL!';
+                document.getElementById('status-area').appendChild(summary);
+
+                // Show the stored data
+                addStatus('info', '📦 Data di Firebase:');
+                var pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(data, null, 2);
+                pre.style.marginTop = '12px';
+                document.getElementById('status-area').appendChild(pre);
+              } else {
+                addStatus('error', '❌ Verifikasi gagal: data tidak ditemukan');
+              }
+            })
+            .catch(function(error) {
+              addStatus('error', '❌ Error: ' + error.message);
+              console.error('Firebase error:', error);
+            })
+            .finally(function() {
+              button.disabled = false;
+              button.textContent = 'Initialize Menu Data';
+            });
+        } else {
+          addStatus('error', '❌ Tidak dapat terhubung ke Firebase');
+          button.disabled = false;
+          button.textContent = 'Initialize Menu Data';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

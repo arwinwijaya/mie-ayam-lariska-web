@@ -25,6 +25,7 @@
   var firebaseConfig = {
     apiKey: 'AIzaSyCXXhBLtrRlGH-exUdEui4DPCDejKwMkzE',
     authDomain: 'mie-ayam-lariska-web.firebaseapp.com',
+    databaseURL: 'https://mie-ayam-lariska-web-default-rtdb.asia-southeast1.firebasedatabase.app',
     projectId: 'mie-ayam-lariska-web',
     storageBucket: 'mie-ayam-lariska-web.firebasestorage.app',
     messagingSenderId: '451301198230',

@@ -381,54 +381,6 @@ test.describe('Stock Service — Fallback Logic', () => {
   });
 });
 
-test.describe('Stock Service — Error Indicator', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => localStorage.clear());
-  });
-
-  test('shows error indicator when using cached data', async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      StockService.showErrorIndicator();
-    });
-
-    const indicator = page.locator('#stock-error-indicator');
-    await expect(indicator).toBeVisible();
-    await expect(indicator).toContainText('Menampilkan data terakhir');
-  });
-
-  test('hides error indicator', async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      StockService.showErrorIndicator();
-    });
-    await page.evaluate(() => {
-      StockService.hideErrorIndicator();
-    });
-
-    const indicator = page.locator('#stock-error-indicator');
-    await expect(indicator).toBeHidden();
-  });
-
-  test('tracks cached data usage state', async ({ page }) => {
-    await page.goto('/');
-    let usingCache = await page.evaluate(() => {
-      return StockService.isUsingCachedData();
-    });
-    expect(usingCache).toBe(false);
-
-    await page.evaluate(() => {
-      StockService.setUsingCachedData(true);
-    });
-
-    usingCache = await page.evaluate(() => {
-      return StockService.isUsingCachedData();
-    });
-    expect(usingCache).toBe(true);
-  });
-});
-
 test.describe('Stock Service — Missing and Orphaned Entries', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');

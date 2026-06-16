@@ -103,6 +103,58 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Skeleton Transition
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Hide all skeleton elements when called
+   */
+  function initSkeletonTransition() {
+    var skeletons = document.querySelectorAll('.skeleton');
+    skeletons.forEach(function(skeleton) {
+      skeleton.classList.add('skeleton--hidden');
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Optimistic Badges
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Set all menu item badges to available (Tersedia)
+   * Used as optimistic default before Firebase data arrives
+   */
+  function setAllBadgesToAvailable() {
+    var cards = document.querySelectorAll('.menu__item-card');
+    cards.forEach(function(card) {
+      var nameEl = card.querySelector('.menu__item-name');
+      if (!nameEl) return;
+      var name = nameEl.textContent.trim();
+
+      // Add stock badge if not exists
+      var imageContainer = card.querySelector('.menu__item-image');
+      if (imageContainer && !card.querySelector('.menu__item-stock')) {
+        var stockBadge = document.createElement('span');
+        stockBadge.className = 'menu__item-stock menu__item-stock--available';
+        stockBadge.innerHTML = '<span class="menu__item-stock-icon">✓</span> Tersedia';
+        imageContainer.appendChild(stockBadge);
+      }
+
+      // Add info badge if not exists
+      var info = card.querySelector('.menu__item-info');
+      if (info && !card.querySelector('.badge')) {
+        var badge = document.createElement('span');
+        badge.className = 'badge badge--available';
+        badge.textContent = 'Tersedia';
+        var priceEl = info.querySelector('.menu__item-price');
+        if (priceEl) {
+          priceEl.parentNode.insertBefore(badge, priceEl.nextSibling);
+        }
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Stock Status Updates
   // ---------------------------------------------------------------------------
 
@@ -240,6 +292,11 @@
   }
 
   /**
+   * Track whether Firebase data has arrived at least once
+   */
+  var _firebaseDataReceived = false;
+
+  /**
    * Initialize stock status updates from Firebase
    */
   function initStockUpdates() {
@@ -250,6 +307,9 @@
     }
 
     var FirebaseService = window.FirebaseService;
+
+    // Show optimistic "Tersedia" badges before Firebase data arrives
+    setAllBadgesToAvailable();
 
     // Seed initial stock data if needed
     FirebaseService.seedInitialStock().then(function () {
@@ -262,6 +322,12 @@
     FirebaseService.onAllStockChange(function (stockData) {
       console.log('[Main] Stock data updated:', stockData);
 
+      // Transition from skeleton to content on first data arrival
+      if (!_firebaseDataReceived) {
+        _firebaseDataReceived = true;
+        initSkeletonTransition();
+      }
+
       // Update each menu item
       Object.keys(MENU_STOCK_MAP).forEach(function (name) {
         var stockId = MENU_STOCK_MAP[name];
@@ -273,15 +339,6 @@
       // Save to localStorage cache
       if (window.StockService) {
         window.StockService.processAndCacheFirebaseData(stockData);
-        window.StockService.hideErrorIndicator();
-      }
-    });
-
-    // Handle connection errors
-    FirebaseService.db.ref('.info/connected').on('value', function (snapshot) {
-      var connected = snapshot.val();
-      if (!connected && window.StockService) {
-        window.StockService.showErrorIndicator();
       }
     });
   }
@@ -581,6 +638,7 @@
     initFAQ();
     initSmoothScroll();
     initMenuImages();
+    setAllBadgesToAvailable();
     initImagePopup();
 
     // Delay Firebase initialization slightly to ensure SDK is loaded

@@ -400,8 +400,7 @@
         container.appendChild(img);
       };
       img.onerror = function() {
-        // Image doesn't exist, keep placeholder
-        console.log('[Main] No image found for: ' + menuName);
+        container.innerHTML = '<div class="image-fallback"><span class="image-fallback__icon">🍜</span><span class="image-fallback__name">' + menuName + '</span></div>';
       };
       img.src = imagePath;
     });
@@ -589,6 +588,17 @@
       initStockUpdates();
       initBadgeUpdates();
     }, 100);
+
+    // Hero image fallback
+    var heroImg = document.querySelector('.hero__image-main');
+    if (heroImg) {
+      heroImg.onerror = function() {
+        var wrapper = heroImg.closest('.hero__image-wrapper');
+        if (wrapper) {
+          wrapper.innerHTML = '<div class="image-fallback" style="height:300px;border-radius:var(--radius-xl);"><span class="image-fallback__icon">🍜</span><span class="image-fallback__name">Mie Ayam Lariska</span></div>';
+        }
+      };
+    }
 
     console.log('[Main] App initialized successfully');
   }

@@ -439,16 +439,16 @@
       whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Kenyang',
       order: 3
     },
-    'topping_suka_suka': {
-      name: 'Topping Suka-Suka',
-      description: 'Pilih mie ayam favoritmu, lalu tambah topping sesuai selera!',
-      icon: '✨',
-      items: [],
-      price: 2000,
-      tag: 'Custom',
+    'paket_spesial': {
+      name: 'Paket Spesial',
+      description: 'Mie Ayam Komplit + Es Nutrisari',
+      icon: '🎁',
+      items: ['mie_ayam_komplit', 'es_nutrisari'],
+      price: 18000,
+      tag: 'Spesial',
       isFeatured: false,
       isActive: true,
-      whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Topping Suka-Suka',
+      whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Spesial',
       order: 4
     }
   };

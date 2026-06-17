@@ -125,7 +125,7 @@ test.describe('Customer Packages Display', () => {
       n.includes('Paket Lengkap') ||
       n.includes('Paket Favorit') ||
       n.includes('Paket Kenyang') ||
-      n.includes('Topping Suka-Suka')
+      n.includes('Paket Spesial')
     );
     expect(hasKnownPackage).toBeTruthy();
   });
@@ -245,41 +245,16 @@ test.describe('Customer Packages Display', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  test('topping card has secondary style button', async ({ page }) => {
-    // Find the Topping Suka-Suka card
+  test('all package cards have primary style button', async ({ page }) => {
     const cards = page.locator('.packages__card');
     const count = await cards.count();
 
     for (let i = 0; i < count; i++) {
       const card = cards.nth(i);
-      const name = await card.locator('.packages__card-name').textContent();
-
-      if (name && name.includes('Topping')) {
-        const btn = card.locator('.packages__card-btn');
-        const btnClass = await btn.getAttribute('class');
-        expect(btnClass).toContain('btn--secondary');
-
-        // Verify button text
-        await expect(btn).toContainText(/Buat Paket Sendiri/i);
-        break;
-      }
-    }
-  });
-
-  test('non-topping cards have primary style button', async ({ page }) => {
-    const gridCards = page.locator('.packages__grid .packages__card');
-    const count = await gridCards.count();
-
-    for (let i = 0; i < count; i++) {
-      const card = gridCards.nth(i);
-      const name = await card.locator('.packages__card-name').textContent();
-
-      if (name && !name.includes('Topping')) {
-        const btn = card.locator('.packages__card-btn');
-        const btnClass = await btn.getAttribute('class');
-        expect(btnClass).toContain('btn--primary');
-        await expect(btn).toContainText(/WhatsApp/i);
-      }
+      const btn = card.locator('.packages__card-btn');
+      const btnClass = await btn.getAttribute('class');
+      expect(btnClass).toContain('btn--primary');
+      await expect(btn).toContainText(/WhatsApp/i);
     }
   });
 
@@ -297,23 +272,18 @@ test.describe('Customer Packages Display', () => {
     expect(itemCount).toBeGreaterThan(0);
   });
 
-  test('Topping Suka-Suka card shows description instead of items', async ({ page }) => {
-    const cards = page.locator('.packages__card');
-    const count = await cards.count();
+  test('all package cards show items list when available', async ({ page }) => {
+    // Find cards with items list
+    const itemsLists = page.locator('.packages__card-items');
+    const count = await itemsLists.count();
 
-    for (let i = 0; i < count; i++) {
-      const card = cards.nth(i);
-      const name = await card.locator('.packages__card-name').textContent();
+    // At least some cards should have items
+    expect(count).toBeGreaterThan(0);
 
-      if (name && name.includes('Topping')) {
-        // Should have description
-        const desc = card.locator('.packages__card-description');
-        await expect(desc).toBeAttached();
-        const descText = await desc.textContent();
-        expect(descText.length).toBeGreaterThan(0);
-        break;
-      }
-    }
+    // Verify items have list items
+    const listItems = itemsLists.first().locator('li');
+    const itemCount = await listItems.count();
+    expect(itemCount).toBeGreaterThan(0);
   });
 
   test('featured card is placed above regular grid', async ({ page }) => {

@@ -580,17 +580,17 @@
             whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Kenyang',
             order: 3
           },
-          'topping_suka_suka': {
-            name: 'Topping Suka-Suka',
-            description: 'Pilih mie ayam favoritmu, lalu tambah topping sesuai selera!',
-            icon: '✨',
-            items: [],
-            itemNames: [],
-            price: 2000,
-            tag: 'Custom',
+          'paket_spesial': {
+            name: 'Paket Spesial',
+            description: 'Mie Ayam Komplit + Es Nutrisari',
+            icon: '🎁',
+            items: ['mie_ayam_komplit', 'es_nutrisari'],
+            itemNames: ['Mie Ayam Komplit', 'Es Nutrisari'],
+            price: 18000,
+            tag: 'Spesial',
             isFeatured: false,
             isActive: true,
-            whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Topping Suka-Suka',
+            whatsappMessage: 'Halo Mie Ayam Lariska, saya mau pesan Paket Spesial',
             order: 4
           }
         };
@@ -650,7 +650,6 @@
             var itemNames = resolveItemNames(pkg, menuData);
             var waLink = buildWhatsAppLink(pkg);
             var priceK = Math.round(pkg.price / 1000);
-            var isTopping = entry.id === 'topping_suka_suka';
 
             var cardHtml = '<div class="' + cardClass + '">';
 
@@ -675,24 +674,14 @@
             }
 
             cardHtml += '<div class="packages__card-pricing">';
-            if (isTopping) {
-              cardHtml += '<p class="packages__card-price"><span class="price">+' + priceK + 'k</span><span class="packages__card-price-note">/topping</span></p>';
-            } else {
-              cardHtml += '<p class="packages__card-price"><span class="price">' + priceK + 'k</span></p>';
-              cardHtml += '<span class="packages__badge--lengkap">Lengkap</span>';
-            }
+            cardHtml += '<p class="packages__card-price"><span class="price">' + priceK + 'k</span></p>';
+            cardHtml += '<span class="packages__badge--lengkap">Lengkap</span>';
             cardHtml += '</div>';
 
-            cardHtml += '<a href="' + waLink + '" class="btn ' + (isTopping ? 'btn--secondary' : 'btn--primary') + ' packages__card-btn" target="_blank" rel="noopener">';
-            if (isTopping) {
-              cardHtml += '<span>Buat Paket Sendiri</span>';
-              cardHtml += '<span class="btn__icon">🎨</span>';
-            } else {
-              cardHtml += '<span>Pesan via WhatsApp</span>';
-              cardHtml += '<span class="btn__icon">💬</span>';
-            }
+            cardHtml += '<a href="' + waLink + '" class="btn btn--primary packages__card-btn" target="_blank" rel="noopener">';
+            cardHtml += '<span>Pesan via WhatsApp</span>';
+            cardHtml += '<span class="btn__icon">💬</span>';
             cardHtml += '</a>';
-
             cardHtml += '</div>';
             return cardHtml;
           }

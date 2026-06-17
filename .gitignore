@@ -20,5 +20,6 @@ Thumbs.db
 # Environment
 .env
 .env.local
+.firebase-token
 /.pi/tasks
 .worktree/

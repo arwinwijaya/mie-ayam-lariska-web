@@ -4,6 +4,10 @@
       ".read": true,
       ".write": true
     },
+    "packages": {
+      ".read": true,
+      ".write": true
+    },
     "recommended_packages": {
       ".read": true,
       ".write": true

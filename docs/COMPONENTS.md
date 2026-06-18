@@ -119,7 +119,7 @@ Value proposition cards explaining why customers should choose Mie Ayam Lariska.
 
 **File:** `index.html`
 
-Menu display with categories and items.
+Menu display with categories, items, images, prices, and stock badges.
 
 **CSS Classes:**
 | Class | Purpose |
@@ -135,11 +135,21 @@ Menu display with categories and items.
 | `.menu__item-name` | Item name |
 | `.menu__item-description` | Item description |
 | `.menu__item-price` | Item price |
+| `.menu__item-badge` | Badge (favorit/baru/bestseller/populer) |
+| `.menu__stock-badge` | Stock status badge |
+| `.menu__order-btn` | WhatsApp order button |
 
 **Categories:**
 1. Mie Ayam (11 items)
 2. Minuman (5 items)
 3. Topping Tambahan (8 items)
+
+**Stock Badge States:**
+| Status | Class | Text |
+|--------|-------|------|
+| Available | `.menu__stock-badge--available` | Tersedia |
+| Limited | `.menu__stock-badge--limited` | Terbatas |
+| Sold Out | `.menu__stock-badge--sold_out` | Habis |
 
 ---
 
@@ -147,24 +157,29 @@ Menu display with categories and items.
 
 **File:** `index.html`
 
-Recommended packages with pre-filled WhatsApp messages.
+Recommended packages with pre-filled WhatsApp messages. Dynamic display from Firebase.
 
 **CSS Classes:**
 | Class | Purpose |
 |-------|---------|
 | `.packages` | Section container |
+| `.packages__featured` | Featured package card |
 | `.packages__grid` | Cards grid layout |
 | `.packages__card` | Package card |
+| `.packages__card-header` | Card header with icon and tag |
+| `.packages__card-icon` | Package icon (emoji) |
+| `.packages__card-tag` | Package tag badge |
 | `.packages__card-name` | Package name |
 | `.packages__card-items` | Package items list |
 | `.packages__card-price` | Package price |
 | `.packages__card-description` | Package description |
+| `.packages__card-btn` | WhatsApp order button |
 
 **Packages:**
-1. Paket Hemat (Mie Ayam Biasa + Es Teh Manis)
-2. Paket Favorit (Mie Ayam Pangsit + Es Teh Manis)
-3. Paket Kenyang (Mie Ayam Komplit + Es Teh Manis)
-4. Paket Topping Suka-Suka
+1. Paket Lengkap (Featured)
+2. Paket Favorit
+3. Paket Kenyang
+4. Paket Spesial
 
 ---
 
@@ -180,6 +195,7 @@ Event catering information and WhatsApp contact.
 | `.events` | Section container |
 | `.events__content` | Content container |
 | `.events__text` | Description text |
+| `.events__cta` | CTA button |
 
 ---
 
@@ -187,7 +203,7 @@ Event catering information and WhatsApp contact.
 
 **File:** `index.html`
 
-Location information with Google Maps link.
+Location information with Google Maps embed.
 
 **CSS Classes:**
 | Class | Purpose |
@@ -201,13 +217,15 @@ Location information with Google Maps link.
 | `.location__map` | Map container |
 | `.location__map-placeholder` | Map placeholder |
 
+**Business Hours:** 10:00-18:00 WIB
+
 ---
 
 ### FAQ Section
 
 **File:** `index.html`
 
-Accordion-style FAQ display.
+Accordion-style FAQ display with 10 questions.
 
 **CSS Classes:**
 | Class | Purpose |
@@ -225,6 +243,11 @@ Accordion-style FAQ display.
 3. Bisa pesan untuk acara?
 4. Lokasinya di mana?
 5. Bisa tambah topping?
+6. Apakah ada paket hemat?
+7. Berapa harga mie ayamnya?
+8. Apakah bisa delivery?
+9. Apakah ada menu minuman?
+10. Bagaimana cara pesan untuk acara?
 
 ---
 
@@ -248,6 +271,48 @@ Footer with contact information and links.
 | `.footer__heading` | Section heading |
 | `.footer__list` | Links list |
 | `.footer__bottom` | Copyright |
+
+---
+
+### Skeleton Loading
+
+**File:** `index.html`
+
+Shimmer animation placeholders while Firebase loads.
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.skeleton` | Skeleton container |
+| `.skeleton__card` | Skeleton card |
+| `.skeleton__image` | Skeleton image placeholder |
+| `.skeleton__text` | Skeleton text line |
+| `.skeleton__text--short` | Short text line |
+| `.skeleton__text--long` | Long text line |
+
+**Behavior:**
+- Shows while Firebase data is loading
+- Smooth transition when data arrives
+- Optimistic "Tersedia" badges before Firebase data
+
+---
+
+### Image Popup
+
+**File:** `index.html`
+
+Hover preview on desktop (non-touch devices).
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.image-popup` | Popup container |
+| `.image-popup__img` | Popup image |
+
+**Behavior:**
+- 300ms delay before showing
+- Responsive positioning
+- Disabled on mobile devices (touch)
 
 ---
 
@@ -282,33 +347,164 @@ Admin login form with username and password fields.
 | Button | `#login-button` | Submit button |
 | Div | `#error-message` | Error message display |
 
-**Usage:**
-```html
-<form id="login-form" novalidate>
-  <div id="error-message" class="error-message" role="alert" aria-live="polite"></div>
-  
-  <div class="form-group">
-    <label for="username" class="form-label">Username</label>
-    <input type="text" id="username" name="username" class="form-input" 
-           placeholder="Masukkan username" autocomplete="username" required>
-  </div>
-  
-  <div class="form-group">
-    <label for="password" class="form-label">Password</label>
-    <input type="password" id="password" name="password" class="form-input" 
-           placeholder="Masukkan password" autocomplete="current-password" required>
-  </div>
-  
-  <button type="submit" id="login-button" class="login-button">Masuk</button>
-</form>
-```
-
 **States:**
 | State | When | What renders |
 |-------|------|--------------|
 | Default | Page load | Empty form |
 | Error | Invalid credentials | Error message displayed |
 | Success | Valid credentials | Redirect to admin dashboard |
+
+---
+
+### Admin Dashboard Header
+
+**File:** `admin/index.html`
+
+Dashboard header with brand, connection status, and controls.
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.admin-header` | Header container |
+| `.admin-header__brand` | Brand name |
+| `.admin-header__subtitle` | "Dashboard Admin" subtitle |
+| `.admin-header__status` | Connection status indicator |
+| `.admin-header__status-dot` | Status dot (green/red) |
+| `.admin-header__status-text` | Status text |
+| `.admin-header__reconnect` | Reconnect button |
+| `.admin-header__logout` | Logout button |
+
+---
+
+### Tab Navigation
+
+**File:** `admin/index.html`
+
+Tab navigation between Menu and Paket sections.
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.tab-nav` | Tab navigation container |
+| `.tab-nav__item` | Tab item |
+| `.tab-nav__item--active` | Active tab |
+
+**Tabs:**
+1. Menu — Menu items management
+2. Paket — Packages management
+
+---
+
+### Menu Grid (Admin)
+
+**File:** `admin/index.html`
+
+Menu items displayed in grid cards matching visitor layout.
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.admin-menu` | Menu section container |
+| `.admin-menu__header` | Section header with Add button |
+| `.admin-menu__grid` | Items grid layout |
+| `.admin-menu__card` | Item card |
+| `.admin-menu__card-image` | Item image |
+| `.admin-menu__card-info` | Item info |
+| `.admin-menu__card-name` | Item name |
+| `.admin-menu__card-category` | Item category |
+| `.admin-menu__card-price` | Item price |
+| `.admin-menu__card-status` | Status badge |
+| `.admin-menu__card-badge` | Item badge |
+| `.admin-menu__card-actions` | Edit/Delete/Arrow buttons |
+| `.admin-menu__card-edit` | Edit button |
+| `.admin-menu__card-delete` | Delete button |
+| `.admin-menu__card-arrow` | Arrow buttons for reordering |
+
+---
+
+### Packages Table (Admin)
+
+**File:** `admin/index.html`
+
+Packages displayed in table format with Edit/Delete actions.
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.admin-packages` | Packages section container |
+| `.admin-packages__header` | Section header with Add button |
+| `.admin-packages__table` | Table container |
+| `.admin-packages__row` | Table row |
+| `.admin-packages__cell` | Table cell |
+| `.admin-packages__actions` | Edit/Delete buttons |
+
+---
+
+### Add/Edit Menu Modal
+
+**File:** `admin/index.html`
+
+Modal form for adding/editing menu items.
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.modal` | Modal container |
+| `.modal__overlay` | Modal overlay |
+| `.modal__content` | Modal content |
+| `.modal__header` | Modal header |
+| `.modal__title` | Modal title |
+| `.modal__close` | Close button |
+| `.modal__body` | Modal body |
+| `.modal__footer` | Modal footer |
+
+**Form Fields:**
+| Field | Type | Validation |
+|-------|------|------------|
+| Name | text | max 100 chars |
+| Category | datalist | required |
+| Price | number | 0-999999 |
+| Description | textarea | max 200 chars, auto-generate button |
+| Image | file | JPG/PNG/WebP, max 2MB |
+| Status | select | available/limited/sold_out |
+| Badge | select | favorit/baru/bestseller/populer/none |
+| Position | number | for ordering |
+
+---
+
+### Add/Edit Package Modal
+
+**File:** `admin/index.html`
+
+Modal form for adding/editing packages.
+
+**Form Fields:**
+| Field | Type | Validation |
+|-------|------|------------|
+| Name | text | max 100 chars |
+| Description | textarea | max 300 chars |
+| Icon | text | emoji |
+| Items | checkboxes | from menu items |
+| Price | number | 1-999999 |
+| Tag | select | Basic/Best Seller/Puas/Spesial |
+| Featured | checkbox | isFeatured flag |
+| Status | checkbox | isActive flag |
+| WhatsApp Message | textarea | pre-filled message |
+
+---
+
+### Delete Confirmation Modal
+
+**File:** `admin/index.html`
+
+Confirmation dialog for delete actions.
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.modal--delete` | Delete modal variant |
+| `.modal__confirm` | Confirm button |
+| `.modal__cancel` | Cancel button |
 
 ---
 
@@ -328,13 +524,6 @@ Error indicator banner shown when displaying cached (stale) data.
 | Element | ID | Purpose |
 |---------|-----|---------|
 | Div | `#stock-error-indicator` | Error indicator container |
-
-**Usage:**
-```html
-<div id="stock-error-indicator" class="stock-error" style="display:none;">
-  <span class="stock-error__text">Menampilkan data terakhir</span>
-</div>
-```
 
 **States:**
 | State | When | What renders |
@@ -368,6 +557,13 @@ Error indicator banner shown when displaying cached (stale) data.
 |-------|---------|
 | `.btn--secondary` | Secondary action button |
 
+### Disabled Button
+
+**CSS Classes:**
+| Class | Purpose |
+|-------|---------|
+| `.btn--disabled` | Disabled state button |
+
 ---
 
 ## Utility Classes
@@ -396,4 +592,5 @@ Error indicator banner shown when displaying cached (stale) data.
 ---
 
 *Generated by vibe-document on 2026-06-15*
-*Source: index.html, admin/login.html*
+*Updated on 2026-06-17*
+*Source: index.html, admin/login.html, admin/index.html*

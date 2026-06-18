@@ -8,7 +8,7 @@ Website untuk restoran mie ayam rumahan dengan menu lengkap, pemesanan via Whats
 
 ### What this is
 
-Mie Ayam Lariska Web adalah website statis untuk restoran mie ayam di Indonesia. Website ini menyediakan tampilan menu dengan status stok real-time, sistem pemesanan via WhatsApp, dan dashboard admin untuk manajemen stok. Menggunakan Firebase Realtime Database untuk penyimpanan data dan Firebase Hosting untuk deployment.
+Mie Ayam Lariska Web adalah website statis untuk restoran mie ayam di Indonesia. Website ini menyediakan tampilan menu dengan status stok real-time, sistem pemesanan via WhatsApp, dashboard admin untuk manajemen menu dan paket, serta fitur-fitur pendukung seperti upload gambar, drag-drop reordering, dan auto-generate deskripsi. Menggunakan Firebase Realtime Database untuk penyimpanan data dan Firebase Hosting untuk deployment.
 
 ### Stack
 
@@ -49,29 +49,56 @@ firebase deploy
 
 ```
 mie-ayam-lariska-web/
-├── admin/                    # Admin interface
-│   └── login.html           # Admin login page
-├── css/                      # Stylesheets
-│   ├── style.css            # Main brand styles
-│   └── admin.css            # Admin-specific styles
-├── docs/                     # Documentation
-│   └── pocket/              # Pocket workflow docs
-├── images/                   # Image assets (empty)
-├── js/                       # JavaScript modules
-│   ├── firebase-config.js   # Firebase initialization & stock API
-│   ├── stock-service.js     # localStorage caching layer
-│   └── admin-auth.js        # Admin authentication
-├── tests/                    # Test files
-│   └── e2e/                 # Playwright E2E tests
-├── index.html                # Main customer-facing page
-├── firebase.json             # Firebase configuration
-├── database.rules.json       # Firebase Realtime DB rules
-└── package.json              # Node.js dependencies
+├── admin/                        # Admin interface
+│   ├── login.html                # Admin login page
+│   └── index.html                # Admin dashboard (menu & packages CRUD)
+├── css/                          # Stylesheets
+│   ├── style.css                 # Main brand styles (~1200 lines)
+│   └── admin.css                 # Admin-specific styles (~600 lines)
+├── js/                           # JavaScript modules
+│   ├── firebase-config.js        # Firebase init, menu/packages/stock API
+│   ├── stock-service.js          # localStorage caching layer
+│   ├── main.js                   # Customer page interactivity
+│   ├── admin-auth.js             # Admin authentication
+│   ├── menu-service.js           # Menu CRUD operations
+│   ├── packages-service.js       # Packages CRUD operations
+│   ├── firebase-connection-service.js  # Connection monitoring
+│   ├── description-templates.js  # Auto-generate descriptions
+│   ├── drag-drop-service.js      # Drag-and-drop reordering
+│   └── image-upload-service.js   # Image upload/rename/download
+├── images/                       # Menu item photos (25 JPG files)
+├── tests/                        # Test files
+│   └── e2e/                      # Playwright E2E tests
+├── docs/                         # Documentation
+│   └── pocket/                   # Pocket workflow docs
+├── vibe/                         # Vibe framework docs
+├── init-menu.html                # Utility: initialize menu data in Firebase
+├── init-stock.html               # Utility: initialize stock data in Firebase
+├── index.html                    # Main customer-facing page
+├── firebase.json                 # Firebase configuration
+├── database.rules.json           # Firebase Realtime DB rules
+└── package.json                  # Node.js dependencies
 ```
 
 ### Architecture
 
-Website ini menggunakan arsitektur statis dengan IIFE JavaScript modules. Tidak ada build process atau framework. Firebase Realtime Database digunakan untuk penyimpanan data stok dengan client-side SDK saja. Admin authentication menggunakan hardcoded credentials dengan localStorage session.
+Website ini menggunakan arsitektur statis dengan IIFE JavaScript modules. Tidak ada build process atau framework. Firebase Realtime Database digunakan untuk penyimpanan data menu, paket, dan stok dengan client-side SDK saja. Admin authentication menggunakan hardcoded credentials dengan localStorage session.
+
+**Data Model:**
+- `menu/` — 24 menu items dengan name, category, price, description, status, badge, order
+- `packages/` — 4 paket rekomendasi dengan items selection, price, tag, featured flag
+- `stock/` — Backward compatibility alias untuk menu status
+
+**Services Layer:**
+- `FirebaseService` — Firebase initialization & CRUD API
+- `StockService` — localStorage caching dengan offline fallback
+- `MenuService` — Menu validation & CRUD operations
+- `PackagesService` — Packages validation & CRUD operations
+- `FirebaseConnectionService` — Real-time connection monitoring
+- `DescriptionTemplates` — Auto-generate marketing descriptions
+- `DragDropService` — Drag-and-drop reordering (desktop & mobile)
+- `ImageUploadService` — Image validation, preview, rename
+- `AdminAuth` — Authentication & session management
 
 Full detail: `vibe/ARCHITECTURE.md`
 
@@ -82,6 +109,9 @@ Full detail: `vibe/ARCHITECTURE.md`
 3. **WhatsApp-based ordering** — Sistem pemesanan sederhana tanpa integrasi pembayaran
 4. **Mobile-first responsive design** — CSS custom properties dengan BEM naming convention
 5. **Playwright for E2E testing** — Framework testing modern dengan dukungan browser yang baik
+6. **Menu & Packages CRUD** — Full admin dashboard untuk manajemen menu dan paket
+7. **Image upload with rename** — Upload gambar dengan auto-rename ke slug format
+8. **Drag-drop reordering** — Reorder menu items dan categories via drag-drop atau arrow buttons
 
 ### Contributing
 
@@ -102,25 +132,33 @@ Full detail: `vibe/ARCHITECTURE.md`
 
 ### What was built
 
-Mie Ayam Lariska Web adalah website untuk restoran mie ayam rumahan. Website ini menampilkan menu lengkap dengan harga, memungkinkan pelanggan memesan langsung via WhatsApp, dan menyediakan dashboard admin untuk mengelola stok menu.
+Mie Ayam Lariska Web adalah website untuk restoran mie ayam rumahan. Website ini menampilkan menu lengkap dengan harga dan gambar, memungkinkan pelanggan memesan langsung via WhatsApp, dan menyediakan dashboard admin untuk mengelola menu, paket, dan stok.
 
 ### Features
 
-**Menu Display** — Menampilkan semua menu mie ayam, minuman, dan topping tambahan dengan harga. Status stok diperbarui secara real-time.
+**Menu Display** — Menampilkan 24 menu item dalam 3 kategori (Mie Ayam, Minuman, Topping Tambahan) dengan gambar, harga, deskripsi, dan status stok real-time.
 
-**WhatsApp Ordering** — Pelanggan dapat memesan langsung via WhatsApp dengan pesan yang sudah diisi otomatis. Tersedia paket hemat, favorit, dan kenyang.
+**Package Recommendations** — 4 paket rekomendasi (Lengkap, Favorit, Kenyang, Spesial) yang ditampilkan secara dinamis dari Firebase dengan featured card highlight.
 
-**Admin Dashboard** — Admin dapat login dan mengelola stok menu. Status stok tersedia: available, limited, sold_out.
+**WhatsApp Ordering** — Pelanggan dapat memesan langsung via WhatsApp dengan pesan yang sudah diisi otomatis untuk setiap menu item dan paket.
 
-**Location & Contact** — Informasi lokasi restoran, jam buka, dan kontak WhatsApp/Instagram.
+**Admin Dashboard** — Dashboard admin lengkap dengan:
+- Manajemen menu (CRUD) dengan validasi dan duplicate detection
+- Manajemen paket (CRUD) dengan items selection
+- Upload gambar dengan preview dan auto-rename
+- Drag-drop reordering untuk menu items dan categories
+- Auto-generate deskripsi marketing
+- Real-time connection monitoring
 
-**FAQ Section** — Pertanyaan umum tentang jam buka, pemesanan, dan lokasi.
+**Location & Contact** — Informasi lokasi restoran, jam buka (10:00-18:00 WIB), Google Maps embed, dan kontak WhatsApp/Instagram.
+
+**FAQ Section** — 10 pertanyaan umum tentang jam buka, pemesanan, dan lokasi dalam format accordion.
 
 ### How to access
 
-**Customer Website:** [URL akan diisi setelah deploy]
+**Customer Website:** [https://mie-ayam-lariska-web.web.app](https://mie-ayam-lariska-web.web.app)
 
-**Admin Dashboard:** [URL]/admin/login.html
+**Admin Dashboard:** [https://mie-ayam-lariska-web.web.app/admin/login.html](https://mie-ayam-lariska-web.web.app/admin/login.html)
 - Username: `lariska`
 - Password: `lariska123`
 
@@ -132,4 +170,4 @@ Untuk masalah teknis, hubungi developer melalui:
 
 ---
 
-*Last updated: 2026-06-15 · Generated by vibe-document*
+*Last updated: 2026-06-17 · Updated to reflect current codebase state*

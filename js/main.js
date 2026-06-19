@@ -133,23 +133,7 @@ function setAllBadgesToAvailable() {
       var stockBadge = document.createElement('span');
       stockBadge.className = 'badge badge--available menu__item-footer-stock';
       stockBadge.textContent = 'Tersedia';
-
-      var separator = document.createElement('span');
-      separator.className = 'menu__item-footer-separator';
-
-      footer.insertBefore(separator, footer.firstChild);
-      footer.insertBefore(stockBadge, separator);
-
-      // Add separator after price if order button exists
-      var orderBtn = footer.querySelector('.menu__item-order');
-      if (orderBtn) {
-        var separator2 = document.createElement('span');
-        separator2.className = 'menu__item-footer-separator';
-        var priceEl = footer.querySelector('.menu__item-price');
-        if (priceEl) {
-          priceEl.parentNode.insertBefore(separator2, priceEl.nextSibling);
-        }
-      }
+      footer.insertBefore(stockBadge, footer.firstChild);
     }
   });
 }
@@ -204,12 +188,6 @@ function updateMenuItemBadge(name, status) {
       existingStockBadge.remove();
     }
 
-    // Remove existing badge in info section
-    var existingBadge = card.querySelector('.badge');
-    if (existingBadge) {
-      existingBadge.remove();
-    }
-
     // Get or create footer
     var footer = card.querySelector('.menu__item-footer');
     if (!footer) return;
@@ -219,34 +197,17 @@ function updateMenuItemBadge(name, status) {
     if (existingFooterStock) {
       existingFooterStock.remove();
     }
-    var existingSeparators = footer.querySelectorAll('.menu__item-footer-separator');
-    existingSeparators.forEach(function(sep) { sep.remove(); });
 
     // Create stock badge in footer
     var stockBadge = document.createElement('span');
     stockBadge.className = 'badge badge--' + status + ' menu__item-footer-stock';
     stockBadge.textContent = AppUtils.getStatusText(status);
 
-    // Create separator
-    var separator1 = document.createElement('span');
-    separator1.className = 'menu__item-footer-separator';
-
-    // Insert stock badge and separator at the beginning of footer
-    footer.insertBefore(separator1, footer.firstChild);
-    footer.insertBefore(stockBadge, separator1);
-
-    // Add separator after price if order button exists
-    var orderBtn = footer.querySelector('.menu__item-order');
-    if (orderBtn) {
-      var separator2 = document.createElement('span');
-      separator2.className = 'menu__item-footer-separator';
-      var priceEl = footer.querySelector('.menu__item-price');
-      if (priceEl) {
-        priceEl.parentNode.insertBefore(separator2, priceEl.nextSibling);
-      }
-    }
+    // Insert stock badge at the beginning of footer
+    footer.insertBefore(stockBadge, footer.firstChild);
 
     // Update card styling for sold out items
+    var orderBtn = footer.querySelector('.menu__item-order');
     if (status === 'sold_out') {
       card.style.opacity = '0.6';
       card.style.pointerEvents = 'none';

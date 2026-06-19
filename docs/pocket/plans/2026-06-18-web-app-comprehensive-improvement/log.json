@@ -70,8 +70,9 @@
         {
           "id": "T9",
           "name": "Extract Inline Scripts",
-          "status": "WAITING",
-          "depends": "T8"
+          "status": "DONE",
+          "depends": "T8",
+          "done_sha": "296024a89192d663268631fe9f5165aa80e1858b"
         },
         {
           "id": "T10",

@@ -8,17 +8,1114 @@
  * Architecture: ES Module, uses window globals for services
  */
 
-(function() {
-  'use strict';
+'use strict';
 
+// State
+var currentMenuData = {};
+var currentPackagesData = {};
+var currentDeleteId = null;
+var currentPackageDeleteId = null;
+
+// Image upload service instance (initialized in initDashboard)
+var imageUpload = null;
+
+// Initialize menu data
+function initMenuData() {
+  FirebaseService.seedInitialMenu().then(function() {
+    console.log('[Admin] Menu data initialized');
+    loadAndRenderMenu();
+  }).catch(function(error) {
+    console.error('[Admin] Error initializing menu:', error);
+  });
+
+  // Seed packages data
+  FirebaseService.seedInitialPackages().then(function() {
+    console.log('[Admin] Packages data initialized');
+    loadAndRenderPackages();
+  }).catch(function(error) {
+    console.error('[Admin] Error initializing packages:', error);
+  });
+
+  // Listen for menu changes
+  FirebaseService.onAllMenuChange(function(data) {
+    currentMenuData = data;
+    renderMenu(data);
+  });
+
+  // Listen for packages changes
+  FirebaseService.onAllPackagesChange(function(data) {
+    currentPackagesData = data;
+    renderPackagesTable(data);
+  });
+}
+
+// Load and render menu
+function loadAndRenderMenu() {
+  MenuService.getMenuByCategory().then(function(grouped) {
+    renderMenuByCategory(grouped);
+  });
+}
+
+// Category display order
+var CATEGORY_ORDER = ['Mie Ayam', 'Topping Tambahan', 'Minuman'];
+
+// Badge configuration (matches visitor)
+var BADGE_CONFIG = {
+  'favorit': { icon: '⭐', label: 'Favorit', class: 'favorit' },
+  'baru': { icon: '🆕', label: 'Baru', class: 'baru' },
+  'bestseller': { icon: '🔥', label: 'Best Seller', class: 'bestseller' },
+  'populer': { icon: '📈', label: 'Populer', class: 'populer' }
+};
+
+// Get status text
+function getStatusText(status) {
+  switch (status) {
+    case 'available': return 'Tersedia';
+    case 'limited': return 'Terbatas';
+    case 'sold_out': return 'Habis';
+    default: return 'Tersedia';
+  }
+}
+
+// Format price in "12k" format (matches visitor)
+function formatPriceK(price) {
+  return Math.round(Number(price) / 1000) + 'k';
+}
+
+// Format price in locale format (for packages)
+function formatPrice(price) {
+  return Number(price).toLocaleString('id-ID');
+}
+
+// Render menu grouped by category
+function renderMenuByCategory(grouped) {
+  var container = document.getElementById('admin-menu');
+  container.innerHTML = '';
+
+  // Sort categories by predefined order
+  var categories = Object.keys(grouped).sort(function(a, b) {
+    var indexA = CATEGORY_ORDER.indexOf(a);
+    var indexB = CATEGORY_ORDER.indexOf(b);
+    
+    // If both are in the order list, sort by index
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB;
+    }
+    // If only one is in the list, it comes first
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    // If neither is in the list, sort alphabetically
+    return a.localeCompare(b);
+  });
+
+  categories.forEach(function(category) {
+    var items = grouped[category];
+    
+    var categorySection = document.createElement('div');
+    categorySection.className = 'menu__category';
+    categorySection.setAttribute('data-category', category);
+
+    var categoryHeader = document.createElement('h3');
+    categoryHeader.className = 'menu__category-title';
+    categoryHeader.innerHTML = '<span class="menu__category-icon">🍜</span> ' + category;
+
+    var itemsGrid = document.createElement('div');
+    itemsGrid.className = 'menu__grid';
+
+    items.forEach(function(item, index) {
+      var card = createMenuCard(item, index, items.length);
+      itemsGrid.appendChild(card);
+    });
+
+    categorySection.appendChild(categoryHeader);
+    categorySection.appendChild(itemsGrid);
+    container.appendChild(categorySection);
+  });
+
+  // Initialize category arrow buttons
+  initCategoryArrowButtons(container);
+}
+
+// Render menu from Firebase data
+function renderMenu(data) {
+  // Group by category
+  var grouped = {};
+  Object.keys(data).forEach(function(itemId) {
+    var item = data[itemId];
+    var category = item.category || 'Lainnya';
+    
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+    
+    grouped[category].push({
+      id: itemId,
+      name: item.name,
+      price: item.price,
+      description: item.description,
+      status: item.status,
+      badge: item.badge,
+      order: item.order || 0
+    });
+  });
+
+  // Sort by order within each category
+  Object.keys(grouped).forEach(function(category) {
+    grouped[category].sort(function(a, b) {
+      return a.order - b.order;
+    });
+  });
+
+  renderMenuByCategory(grouped);
+}
+
+// Create menu card element (matches visitor structure)
+function createMenuCard(item, index, totalItems) {
+  var card = document.createElement('div');
+  card.className = 'menu__item-card';
+  card.setAttribute('data-item-id', item.id);
+
+  // === Image container (matches visitor: .menu__item-image) ===
+  var imageContainer = document.createElement('div');
+  imageContainer.className = 'menu__item-image';
+  
+  var img = document.createElement('img');
+  var slug = item.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  img.src = '../images/' + slug + '.jpg';
+  img.alt = item.name;
+  img.loading = 'lazy';
+  img.onerror = function() {
+    this.style.display = 'none';
+    var placeholder = document.createElement('div');
+    placeholder.className = 'menu__item-image-placeholder';
+    placeholder.textContent = 'No Image';
+    this.parentNode.insertBefore(placeholder, this);
+    this.onerror = null;
+  };
+  imageContainer.appendChild(img);
+
+  // Badge on top-left of image (matches visitor)
+  if (item.badge && BADGE_CONFIG[item.badge]) {
+    var badgeEl = document.createElement('span');
+    badgeEl.className = 'menu__item-badge menu__item-badge--' + BADGE_CONFIG[item.badge].class;
+    badgeEl.textContent = BADGE_CONFIG[item.badge].icon + ' ' + BADGE_CONFIG[item.badge].label;
+    imageContainer.appendChild(badgeEl);
+  }
+
+  // Stock status on bottom-right of image (matches visitor)
+  var stockBadge = document.createElement('span');
+  stockBadge.className = 'menu__item-stock menu__item-stock--' + (item.status || 'available');
+  var stockIcon = '';
+  switch (item.status) {
+    case 'available': stockIcon = '✓'; break;
+    case 'limited': stockIcon = '!'; break;
+    case 'sold_out': stockIcon = '✕'; break;
+    default: stockIcon = '✓';
+  }
+  stockBadge.innerHTML = '<span class="menu__item-stock-icon">' + stockIcon + '</span> ' + getStatusText(item.status || 'available');
+  imageContainer.appendChild(stockBadge);
+
+  // === Info section (matches visitor: .menu__item-info) ===
+  var infoSection = document.createElement('div');
+  infoSection.className = 'menu__item-info';
+
+  var nameEl = document.createElement('h4');
+  nameEl.className = 'menu__item-name';
+  nameEl.textContent = item.name;
+
+  var descEl = document.createElement('p');
+  descEl.className = 'menu__item-description';
+  descEl.textContent = item.description || '-';
+
+  var footerEl = document.createElement('div');
+  footerEl.className = 'menu__item-footer';
+
+  var priceEl = document.createElement('p');
+  priceEl.className = 'menu__item-price';
+  var priceSpan = document.createElement('span');
+  priceSpan.className = 'price';
+  priceSpan.textContent = formatPriceK(item.price);
+  priceEl.appendChild(priceSpan);
+  footerEl.appendChild(priceEl);
+
+  infoSection.appendChild(nameEl);
+  infoSection.appendChild(descEl);
+  infoSection.appendChild(footerEl);
+
+  // === Admin controls (below price, with border-top separator) ===
+  var controlsEl = document.createElement('div');
+  controlsEl.className = 'admin-menu__card-controls';
+  controlsEl.style.marginTop = 'var(--space-md)';
+
+  var actionsEl = document.createElement('div');
+  actionsEl.className = 'admin-menu__card-actions';
+
+  var editBtn = document.createElement('button');
+  editBtn.className = 'btn btn--text btn--sm';
+  editBtn.textContent = 'Edit';
+  editBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openEditModal(item.id);
+  });
+
+  var deleteBtn = document.createElement('button');
+  deleteBtn.className = 'btn btn--text btn--danger btn--sm';
+  deleteBtn.textContent = 'Hapus';
+  deleteBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openDeleteModal(item.id, item.name);
+  });
+
+  actionsEl.appendChild(editBtn);
+  actionsEl.appendChild(deleteBtn);
+
+  // Arrow buttons for reorder
+  var arrowsEl = document.createElement('div');
+  arrowsEl.className = 'item-arrows';
+  arrowsEl.style.display = 'flex';
+  arrowsEl.style.flexDirection = 'column';
+  arrowsEl.style.gap = '4px';
+  arrowsEl.style.marginLeft = 'auto';
+
+  var upBtn = document.createElement('button');
+  upBtn.className = 'arrow-btn arrow-btn--up';
+  upBtn.innerHTML = '▲';
+  upBtn.title = 'Pindah ke atas';
+  upBtn.style.cssText = 'background:var(--color-primary);color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:10px;';
+  upBtn.disabled = index === 0;
+  upBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    moveItemUp(card);
+  });
+
+  var downBtn = document.createElement('button');
+  downBtn.className = 'arrow-btn arrow-btn--down';
+  downBtn.innerHTML = '▼';
+  downBtn.title = 'Pindah ke bawah';
+  downBtn.style.cssText = 'background:var(--color-primary);color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:10px;';
+  downBtn.disabled = index === totalItems - 1;
+  downBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    moveItemDown(card);
+  });
+
+  arrowsEl.appendChild(upBtn);
+  arrowsEl.appendChild(downBtn);
+
+  controlsEl.appendChild(actionsEl);
+  controlsEl.appendChild(arrowsEl);
+
+  // === Assemble card (matches visitor structure) ===
+  card.appendChild(imageContainer);
+  card.appendChild(infoSection);
+  card.appendChild(controlsEl);
+
+  return card;
+}
+
+// Handle item reorder
+function handleItemReorder(orderedIds) {
+  MenuService.updateMenuOrder(orderedIds).then(function(result) {
+    if (!result.success) {
+      console.error('Failed to update order:', result.error);
+      alert('Gagal mengupdate urutan: ' + result.error);
+    }
+  });
+}
+
+// Handle category reorder
+function handleCategoryReorder(orderedCategories) {
+  // Update category order in Firebase
+  var updates = {};
+  orderedCategories.forEach(function(category, index) {
+    // Update order for all items in this category
+    Object.keys(currentMenuData).forEach(function(itemId) {
+      if (currentMenuData[itemId].category === category) {
+        updates[itemId + '/categoryOrder'] = index;
+      }
+    });
+  });
+
+  FirebaseService.menuRef.update(updates).catch(function(error) {
+    console.error('Failed to update category order:', error);
+  });
+}
+
+// Move item up in grid
+function moveItemUp(card) {
+  var grid = card.parentElement;
+  var prevSibling = card.previousElementSibling;
+  
+  if (prevSibling && prevSibling.classList.contains('menu__item-card')) {
+    grid.insertBefore(card, prevSibling);
+    updateItemArrowButtons(grid);
+    
+    // Get new order and update Firebase
+    var orderedIds = [];
+    var items = grid.querySelectorAll('.menu__item-card');
+    items.forEach(function(item) {
+      orderedIds.push(item.getAttribute('data-item-id'));
+    });
+    
+    handleItemReorder(orderedIds);
+  }
+}
+
+// Move item down in grid
+function moveItemDown(card) {
+  var grid = card.parentElement;
+  var nextSibling = card.nextElementSibling;
+  
+  if (nextSibling && nextSibling.classList.contains('menu__item-card')) {
+    grid.insertBefore(nextSibling, card);
+    updateItemArrowButtons(grid);
+    
+    // Get new order and update Firebase
+    var orderedIds = [];
+    var items = grid.querySelectorAll('.menu__item-card');
+    items.forEach(function(item) {
+      orderedIds.push(item.getAttribute('data-item-id'));
+    });
+    
+    handleItemReorder(orderedIds);
+  }
+}
+
+// Update arrow button disabled states for items in grid
+function updateItemArrowButtons(grid) {
+  var items = grid.querySelectorAll('.menu__item-card');
+  
+  items.forEach(function(item, index) {
+    var upBtn = item.querySelector('.arrow-btn--up');
+    var downBtn = item.querySelector('.arrow-btn--down');
+    
+    if (upBtn) upBtn.disabled = index === 0;
+    if (downBtn) downBtn.disabled = index === items.length - 1;
+  });
+}
+
+// Move category up
+function moveCategoryUp(categorySection) {
+  var container = categorySection.parentElement;
+  var prevSibling = categorySection.previousElementSibling;
+  
+  if (prevSibling && prevSibling.classList.contains('menu__category')) {
+    container.insertBefore(categorySection, prevSibling);
+    updateCategoryArrowButtons(container);
+    
+    // Get new order and update Firebase
+    var orderedCategories = [];
+    var categories = container.querySelectorAll('.menu__category');
+    categories.forEach(function(cat) {
+      var title = cat.querySelector('.menu__category-title');
+      if (title) {
+        orderedCategories.push(title.textContent.trim());
+      }
+    });
+    
+    handleCategoryReorder(orderedCategories);
+  }
+}
+
+// Move category down
+function moveCategoryDown(categorySection) {
+  var container = categorySection.parentElement;
+  var nextSibling = categorySection.nextElementSibling;
+  
+  if (nextSibling && nextSibling.classList.contains('menu__category')) {
+    container.insertBefore(nextSibling, categorySection);
+    updateCategoryArrowButtons(container);
+    
+    // Get new order and update Firebase
+    var orderedCategories = [];
+    var categories = container.querySelectorAll('.menu__category');
+    categories.forEach(function(cat) {
+      var title = cat.querySelector('.menu__category-title');
+      if (title) {
+        orderedCategories.push(title.textContent.trim());
+      }
+    });
+    
+    handleCategoryReorder(orderedCategories);
+  }
+}
+
+// Update arrow button disabled states for categories
+function updateCategoryArrowButtons(container) {
+  var categories = container.querySelectorAll('.menu__category');
+  
+  categories.forEach(function(category, index) {
+    var upBtn = category.querySelector('.category-arrow--up');
+    var downBtn = category.querySelector('.category-arrow--down');
+    
+    if (upBtn) upBtn.disabled = index === 0;
+    if (downBtn) downBtn.disabled = index === categories.length - 1;
+  });
+}
+
+// Initialize category arrow buttons
+function initCategoryArrowButtons(container) {
+  var categories = container.querySelectorAll('.menu__category');
+  
+  categories.forEach(function(category, index) {
+    var header = category.querySelector('.menu__category-title');
+    if (!header) return;
+    
+    // Create arrow buttons container
+    var arrowsContainer = document.createElement('div');
+    arrowsContainer.className = 'category-arrows';
+    arrowsContainer.style.display = 'inline-flex';
+    arrowsContainer.style.gap = '4px';
+    arrowsContainer.style.marginLeft = '8px';
+    
+    // Up button
+    var upBtn = document.createElement('button');
+    upBtn.className = 'category-arrow category-arrow--up';
+    upBtn.innerHTML = '▲';
+    upBtn.title = 'Pindah kategori ke atas';
+    upBtn.style.cssText = 'background:var(--color-primary);color:white;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;';
+    upBtn.disabled = index === 0;
+    upBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      moveCategoryUp(category);
+    });
+    
+    // Down button
+    var downBtn = document.createElement('button');
+    downBtn.className = 'category-arrow category-arrow--down';
+    downBtn.innerHTML = '▼';
+    downBtn.title = 'Pindah kategori ke bawah';
+    downBtn.style.cssText = 'background:var(--color-primary);color:white;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;';
+    downBtn.disabled = index === categories.length - 1;
+    downBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      moveCategoryDown(category);
+    });
+    
+    arrowsContainer.appendChild(upBtn);
+    arrowsContainer.appendChild(downBtn);
+    header.appendChild(arrowsContainer);
+  });
+}
+
+// Open add modal
+function openAddModal() {
+  document.getElementById('modal-title').textContent = 'Tambah Menu';
+  document.getElementById('menu-id').value = '';
+  document.getElementById('menu-name').value = '';
+  document.getElementById('menu-category').value = '';
+  document.getElementById('menu-price').value = '';
+  document.getElementById('menu-description').value = '';
+  document.getElementById('menu-status').value = 'available';
+  document.getElementById('menu-badge').value = '';
+  document.getElementById('char-count').textContent = '0';
+  
+  // Reset position control
+  document.getElementById('menu-position-type').value = 'keep';
+  document.getElementById('menu-position-ref').style.display = 'none';
+  document.getElementById('menu-position-ref').innerHTML = '';
+  
+  clearErrors();
+  imageUpload.reset();
+  document.getElementById('menu-modal').style.display = 'flex';
+}
+
+// Open edit modal
+function openEditModal(itemId) {
+  var item = currentMenuData[itemId];
+  if (!item) return;
+
+  document.getElementById('modal-title').textContent = 'Edit Menu';
+  document.getElementById('menu-id').value = itemId;
+  document.getElementById('menu-name').value = item.name || '';
+  document.getElementById('menu-category').value = item.category || '';
+  document.getElementById('menu-price').value = item.price || '';
+  document.getElementById('menu-description').value = item.description || '';
+  document.getElementById('menu-status').value = item.status || 'available';
+  document.getElementById('menu-badge').value = item.badge || '';
+  document.getElementById('char-count').textContent = (item.description || '').length;
+  
+  // Reset position control
+  document.getElementById('menu-position-type').value = 'keep';
+  document.getElementById('menu-position-ref').style.display = 'none';
+  document.getElementById('menu-position-ref').innerHTML = '';
+  
+  clearErrors();
+  imageUpload.reset();
+  document.getElementById('menu-modal').style.display = 'flex';
+}
+
+// Open delete modal
+function openDeleteModal(itemId, itemName) {
+  currentDeleteId = itemId;
+  document.getElementById('delete-item-name').textContent = itemName;
+  document.getElementById('delete-modal').style.display = 'flex';
+}
+
+// Close modals
+function closeModals() {
+  document.getElementById('menu-modal').style.display = 'none';
+  document.getElementById('delete-modal').style.display = 'none';
+  currentDeleteId = null;
+}
+
+// Clear form errors
+function clearErrors() {
+  document.getElementById('name-error').textContent = '';
+  document.getElementById('category-error').textContent = '';
+  document.getElementById('price-error').textContent = '';
+  document.getElementById('description-error').textContent = '';
+}
+
+// Show form error
+function showError(fieldId, message) {
+  document.getElementById(fieldId + '-error').textContent = message;
+}
+
+// Handle form submit
+function handleFormSubmit(e) {
+  e.preventDefault();
+  clearErrors();
+
+  var itemId = document.getElementById('menu-id').value;
+  var data = {
+    name: document.getElementById('menu-name').value,
+    category: document.getElementById('menu-category').value,
+    price: document.getElementById('menu-price').value,
+    description: document.getElementById('menu-description').value,
+    status: document.getElementById('menu-status').value,
+    badge: document.getElementById('menu-badge').value || null
+  };
+
+  // Validate
+  var validation = MenuService.validateMenuItem(data);
+  if (!validation.valid) {
+    validation.errors.forEach(function(error) {
+      if (error.includes('Nama')) showError('name', error);
+      else if (error.includes('Kategori')) showError('category', error);
+      else if (error.includes('Harga')) showError('price', error);
+      else if (error.includes('Deskripsi')) showError('description', error);
+    });
+    return;
+  }
+
+  // Handle position change
+  var positionType = document.getElementById('menu-position-type').value;
+  var positionRef = document.getElementById('menu-position-ref').value;
+
+  // Create or update
+  var promise;
+  if (itemId) {
+    promise = MenuService.updateMenuItem(itemId, data);
+  } else {
+    promise = MenuService.createMenuItem(data);
+  }
+
+  promise.then(function(result) {
+    if (result.success) {
+      // Handle position change
+      if (positionType !== 'keep' && (itemId || result.itemId)) {
+        var targetId = itemId || result.itemId;
+        var targetCategory = data.category;
+        
+        // Get all items in category
+        MenuService.getMenuByCategory().then(function(grouped) {
+          var categoryItems = grouped[targetCategory] || [];
+          
+          // Calculate new position
+          var newOrder = null;
+          if (positionType === 'first') {
+            newOrder = 1;
+          } else if (positionType === 'last') {
+            newOrder = categoryItems.length + 1;
+          } else if ((positionType === 'before' || positionType === 'after') && positionRef) {
+            var refItem = categoryItems.find(function(item) { return item.id === positionRef; });
+            if (refItem) {
+              newOrder = positionType === 'before' ? refItem.order : refItem.order + 1;
+            }
+          }
+          
+          if (newOrder !== null) {
+            // Update order for all items
+            var updates = {};
+            categoryItems.forEach(function(item) {
+              if (item.id === targetId) {
+                updates[item.id + '/order'] = newOrder;
+              } else if (item.order >= newOrder) {
+                updates[item.id + '/order'] = item.order + 1;
+              }
+            });
+            
+            // Also update order for items that need to shift
+            categoryItems.forEach(function(item) {
+              if (item.id !== targetId && item.order >= newOrder) {
+                updates[item.id + '/order'] = item.order + 1;
+              }
+            });
+            
+            FirebaseService.menuRef.update(updates).then(function() {
+              closeModals();
+              loadAndRenderMenu();
+            });
+          } else {
+            closeModals();
+            loadAndRenderMenu();
+          }
+        });
+      } else {
+        closeModals();
+        loadAndRenderMenu();
+      }
+    } else {
+      alert('Error: ' + result.error);
+    }
+  });
+}
+
+// Handle delete confirm
+function handleDeleteConfirm() {
+  if (!currentDeleteId) return;
+
+  MenuService.deleteMenuItem(currentDeleteId).then(function(result) {
+    if (result.success) {
+      closeModals();
+      loadAndRenderMenu();
+    } else {
+      alert('Error: ' + result.error);
+    }
+  });
+}
+
+// Auto-generate description
+function handleAutoGenerate() {
+  var name = document.getElementById('menu-name').value;
+  var category = document.getElementById('menu-category').value;
+
+  if (!name) {
+    alert('Isi nama menu terlebih dahulu');
+    return;
+  }
+
+  var description = DescriptionTemplates.generateDescription(name, category, {
+    maxLength: 200
+  });
+
+  document.getElementById('menu-description').value = description;
+  document.getElementById('char-count').textContent = description.length;
+}
+
+// Position control - populate reference dropdown
+function populatePositionRef() {
+  var category = document.getElementById('menu-category').value;
+  var currentId = document.getElementById('menu-id').value;
+  var positionRefSelect = document.getElementById('menu-position-ref');
+  
+  positionRefSelect.innerHTML = '';
+  
+  if (!category || !currentMenuData) return;
+  
+  // Get items in same category
+  var items = [];
+  Object.keys(currentMenuData).forEach(function(id) {
+    var item = currentMenuData[id];
+    if (item.category === category && id !== currentId) {
+      items.push({ id: id, name: item.name, order: item.order || 0 });
+    }
+  });
+  
+  // Sort by order
+  items.sort(function(a, b) { return a.order - b.order; });
+  
+  // Populate dropdown
+  items.forEach(function(item) {
+    var option = document.createElement('option');
+    option.value = item.id;
+    option.textContent = item.name;
+    positionRefSelect.appendChild(option);
+  });
+}
+
+function calculateNewPosition(positionType, refItemId, categoryItems) {
+  if (positionType === 'first') {
+    return 1;
+  } else if (positionType === 'last') {
+    return categoryItems.length + 1;
+  } else if (positionType === 'before' && refItemId) {
+    var refItem = categoryItems.find(function(item) { return item.id === refItemId; });
+    return refItem ? refItem.order : categoryItems.length + 1;
+  } else if (positionType === 'after' && refItemId) {
+    var refItem = categoryItems.find(function(item) { return item.id === refItemId; });
+    return refItem ? refItem.order + 1 : categoryItems.length + 1;
+  }
+  return null;
+}
+
+// =========================================================================
+// Tab Navigation
+// =========================================================================
+function switchTab(tabName) {
+  // Update tab buttons
+  document.querySelectorAll('.admin-tabs__btn').forEach(function(btn) {
+    btn.classList.remove('admin-tabs__btn--active');
+  });
+  document.querySelector('[data-tab="' + tabName + '"]').classList.add('admin-tabs__btn--active');
+
+  // Update tab content
+  document.querySelectorAll('.admin-tab-content').forEach(function(content) {
+    content.style.display = 'none';
+  });
+  document.getElementById('tab-content-' + tabName).style.display = 'block';
+}
+
+// =========================================================================
+// Packages CRUD
+// =========================================================================
+
+// Load and render packages
+function loadAndRenderPackages() {
+  FirebaseService.getPackages().then(function(data) {
+    currentPackagesData = data;
+    renderPackagesTable(data);
+  });
+}
+
+// Render packages table
+function renderPackagesTable(data) {
+  var tbody = document.getElementById('packages-table-body');
+  tbody.innerHTML = '';
+
+  var packageKeys = Object.keys(data);
+
+  if (packageKeys.length === 0) {
+    var emptyRow = document.createElement('tr');
+    emptyRow.innerHTML = '<td colspan="8" class="packages-table__empty">Belum ada paket. Klik "Tambah Paket" untuk membuat paket baru.</td>';
+    tbody.appendChild(emptyRow);
+    return;
+  }
+
+  // Sort by order
+  packageKeys.sort(function(a, b) {
+    return (data[a].order || 0) - (data[b].order || 0);
+  });
+
+  packageKeys.forEach(function(packageId) {
+    var pkg = data[packageId];
+    var row = document.createElement('tr');
+    row.setAttribute('data-package-id', packageId);
+
+    // Icon
+    var iconCell = document.createElement('td');
+    iconCell.className = 'packages-table__icon';
+    iconCell.textContent = pkg.icon || '🍜';
+
+    // Name
+    var nameCell = document.createElement('td');
+    nameCell.className = 'packages-table__name';
+    nameCell.textContent = pkg.name;
+
+    // Price
+    var priceCell = document.createElement('td');
+    priceCell.className = 'packages-table__price';
+    priceCell.textContent = 'Rp ' + formatPrice(pkg.price);
+
+    // Items count
+    var itemsCell = document.createElement('td');
+    itemsCell.className = 'packages-table__items';
+    var itemsCount = (pkg.items && pkg.items.length) ? pkg.items.length : 0;
+    itemsCell.textContent = itemsCount + ' item' + (itemsCount !== 1 ? 's' : '');
+
+    // Tag
+    var tagCell = document.createElement('td');
+    var tagBadge = document.createElement('span');
+    tagBadge.className = 'packages-badge packages-badge--' + (pkg.tag || 'basic').toLowerCase().replace(/\s+/g, '-');
+    tagBadge.textContent = pkg.tag || 'Basic';
+    tagCell.appendChild(tagBadge);
+
+    // Featured
+    var featuredCell = document.createElement('td');
+    if (pkg.isFeatured) {
+      var featuredBadge = document.createElement('span');
+      featuredBadge.className = 'packages-badge packages-badge--featured';
+      featuredBadge.textContent = '⭐ Featured';
+      featuredCell.appendChild(featuredBadge);
+    } else {
+      featuredCell.textContent = '-';
+    }
+
+    // Status
+    var statusCell = document.createElement('td');
+    var statusBadge = document.createElement('span');
+    statusBadge.className = 'packages-badge packages-badge--' + (pkg.isActive ? 'active' : 'inactive');
+    statusBadge.textContent = pkg.isActive ? 'Aktif' : 'Nonaktif';
+    statusCell.appendChild(statusBadge);
+
+    // Actions
+    var actionsCell = document.createElement('td');
+    actionsCell.className = 'packages-table__actions';
+
+    var editBtn = document.createElement('button');
+    editBtn.className = 'btn btn--text btn--sm';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', function() {
+      openPackageEditModal(packageId);
+    });
+
+    var deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn--text btn--danger btn--sm';
+    deleteBtn.textContent = 'Hapus';
+    deleteBtn.addEventListener('click', function() {
+      openPackageDeleteModal(packageId, pkg.name);
+    });
+
+    actionsCell.appendChild(editBtn);
+    actionsCell.appendChild(deleteBtn);
+
+    row.appendChild(iconCell);
+    row.appendChild(nameCell);
+    row.appendChild(priceCell);
+    row.appendChild(itemsCell);
+    row.appendChild(tagCell);
+    row.appendChild(featuredCell);
+    row.appendChild(statusCell);
+    row.appendChild(actionsCell);
+
+    tbody.appendChild(row);
+  });
+}
+
+// Load menu items for package items checkboxes
+function loadPackageItemsCheckboxes(selectedItems) {
+  var container = document.getElementById('package-items-checkboxes');
+  container.innerHTML = '';
+
+  if (!currentMenuData || Object.keys(currentMenuData).length === 0) {
+    container.innerHTML = '<span class="form-help">Memuat menu...</span>';
+    return;
+  }
+
+  // Sort by category then by order
+  var menuItems = Object.keys(currentMenuData).map(function(id) {
+    return {
+      id: id,
+      name: currentMenuData[id].name,
+      category: currentMenuData[id].category || 'Lainnya',
+      order: currentMenuData[id].order || 0
+    };
+  }).sort(function(a, b) {
+    if (a.category !== b.category) return a.category.localeCompare(b.category);
+    return a.order - b.order;
+  });
+
+  var currentCategory = '';
+  menuItems.forEach(function(item) {
+    if (item.category !== currentCategory) {
+      currentCategory = item.category;
+      var categoryLabel = document.createElement('div');
+      categoryLabel.className = 'package-items-category';
+      categoryLabel.textContent = currentCategory;
+      container.appendChild(categoryLabel);
+    }
+
+    var label = document.createElement('label');
+    label.className = 'package-items-item';
+
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.name = 'package-items';
+    checkbox.value = item.id;
+    checkbox.checked = selectedItems && selectedItems.indexOf(item.id) !== -1;
+
+    var span = document.createElement('span');
+    span.textContent = item.name;
+
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    container.appendChild(label);
+  });
+}
+
+// Open add package modal
+function openPackageAddModal() {
+  document.getElementById('package-modal-title').textContent = 'Tambah Paket';
+  document.getElementById('package-id').value = '';
+  document.getElementById('package-name').value = '';
+  document.getElementById('package-description').value = '';
+  document.getElementById('package-icon').value = '';
+  document.getElementById('package-price').value = '';
+  document.getElementById('package-tag').value = 'Basic';
+  document.getElementById('package-featured').checked = false;
+  document.getElementById('package-status').value = 'true';
+  document.getElementById('package-order').value = '';
+  document.getElementById('package-whatsapp').value = '';
+
+  loadPackageItemsCheckboxes([]);
+  clearPackageErrors();
+  document.getElementById('package-modal').style.display = 'flex';
+}
+
+// Open edit package modal
+function openPackageEditModal(packageId) {
+  var pkg = currentPackagesData[packageId];
+  if (!pkg) return;
+
+  document.getElementById('package-modal-title').textContent = 'Edit Paket';
+  document.getElementById('package-id').value = packageId;
+  document.getElementById('package-name').value = pkg.name || '';
+  document.getElementById('package-description').value = pkg.description || '';
+  document.getElementById('package-icon').value = pkg.icon || '';
+  document.getElementById('package-price').value = pkg.price || '';
+  document.getElementById('package-tag').value = pkg.tag || 'Basic';
+  document.getElementById('package-featured').checked = pkg.isFeatured || false;
+  document.getElementById('package-status').value = pkg.isActive ? 'true' : 'false';
+  document.getElementById('package-order').value = pkg.order || '';
+  document.getElementById('package-whatsapp').value = pkg.whatsappMessage || '';
+
+  loadPackageItemsCheckboxes(pkg.items || []);
+  clearPackageErrors();
+  document.getElementById('package-modal').style.display = 'flex';
+}
+
+// Open delete package modal
+function openPackageDeleteModal(packageId, packageName) {
+  currentPackageDeleteId = packageId;
+  document.getElementById('package-delete-name').textContent = packageName;
+  document.getElementById('package-delete-modal').style.display = 'flex';
+}
+
+// Close package modals
+function closePackageModals() {
+  document.getElementById('package-modal').style.display = 'none';
+  document.getElementById('package-delete-modal').style.display = 'none';
+  currentPackageDeleteId = null;
+}
+
+// Clear package form errors
+function clearPackageErrors() {
+  document.getElementById('package-name-error').textContent = '';
+  document.getElementById('package-description-error').textContent = '';
+  document.getElementById('package-icon-error').textContent = '';
+  document.getElementById('package-price-error').textContent = '';
+}
+
+// Validate package form
+function validatePackageForm() {
+  var errors = [];
+  var name = document.getElementById('package-name').value.trim();
+  var description = document.getElementById('package-description').value.trim();
+  var icon = document.getElementById('package-icon').value.trim();
+  var price = document.getElementById('package-price').value;
+
+  if (!name) {
+    errors.push({ field: 'package-name', message: 'Nama paket wajib diisi' });
+  }
+  if (!description) {
+    errors.push({ field: 'package-description', message: 'Deskripsi wajib diisi' });
+  }
+  if (!icon) {
+    errors.push({ field: 'package-icon', message: 'Icon wajib diisi' });
+  }
+  if (!price || price < 0) {
+    errors.push({ field: 'package-price', message: 'Harga wajib diisi dan harus lebih dari 0' });
+  }
+
+  return errors;
+}
+
+// Handle package form submit
+function handlePackageFormSubmit(e) {
+  e.preventDefault();
+  clearPackageErrors();
+
+  var errors = validatePackageForm();
+  if (errors.length > 0) {
+    errors.forEach(function(err) {
+      document.getElementById(err.field + '-error').textContent = err.message;
+    });
+    return;
+  }
+
+  var packageId = document.getElementById('package-id').value;
+
+  // Get selected items
+  var selectedItems = [];
+  document.querySelectorAll('input[name="package-items"]:checked').forEach(function(cb) {
+    selectedItems.push(cb.value);
+  });
+
+  var data = {
+    name: document.getElementById('package-name').value.trim(),
+    description: document.getElementById('package-description').value.trim(),
+    icon: document.getElementById('package-icon').value.trim(),
+    items: selectedItems,
+    price: parseInt(document.getElementById('package-price').value, 10),
+    tag: document.getElementById('package-tag').value,
+    isFeatured: document.getElementById('package-featured').checked,
+    isActive: document.getElementById('package-status').value === 'true',
+    order: parseInt(document.getElementById('package-order').value, 10) || 0,
+    whatsappMessage: document.getElementById('package-whatsapp').value.trim()
+  };
+
+  // If setting featured, unset other featured packages first
+  var promise;
+  if (data.isFeatured && (!packageId || !currentPackagesData[packageId] || !currentPackagesData[packageId].isFeatured)) {
+    promise = unsetAllFeatured().then(function() {
+      if (packageId) {
+        return FirebaseService.updatePackage(packageId, data);
+      } else {
+        return FirebaseService.addPackage(data);
+      }
+    });
+  } else {
+    if (packageId) {
+      promise = FirebaseService.updatePackage(packageId, data);
+    } else {
+      promise = FirebaseService.addPackage(data);
+    }
+  }
+
+  promise.then(function() {
+    closePackageModals();
+    loadAndRenderPackages();
+  }).catch(function(error) {
+    alert('Error: ' + error.message);
+  });
+}
+
+// Unset all featured packages
+function unsetAllFeatured() {
+  var updates = {};
+  Object.keys(currentPackagesData).forEach(function(id) {
+    if (currentPackagesData[id].isFeatured) {
+      updates[id + '/isFeatured'] = false;
+    }
+  });
+
+  if (Object.keys(updates).length === 0) {
+    return Promise.resolve();
+  }
+
+  return FirebaseService.packagesRef.update(updates);
+}
+
+// Handle package delete confirm
+function handlePackageDeleteConfirm() {
+  if (!currentPackageDeleteId) return;
+
+  FirebaseService.deletePackage(currentPackageDeleteId).then(function() {
+    closePackageModals();
+    loadAndRenderPackages();
+  }).catch(function(error) {
+    alert('Error: ' + error.message);
+  });
+}
+
+// =========================================================================
+// Dashboard Initialization
+// =========================================================================
+
+function initDashboard() {
   // Check authentication
   AdminAuth.requireAuth();
-
-  // State
-  var currentMenuData = {};
-  var currentPackagesData = {};
-  var currentDeleteId = null;
-  var currentPackageDeleteId = null;
 
   // Initialize connection service
   FirebaseConnectionService.init({
@@ -26,693 +1123,8 @@
     reconnectButton: document.getElementById('reconnect-button')
   });
 
-  // Initialize menu data
-  function initMenuData() {
-    FirebaseService.seedInitialMenu().then(function() {
-      console.log('[Admin] Menu data initialized');
-      loadAndRenderMenu();
-    }).catch(function(error) {
-      console.error('[Admin] Error initializing menu:', error);
-    });
-
-    // Seed packages data
-    FirebaseService.seedInitialPackages().then(function() {
-      console.log('[Admin] Packages data initialized');
-      loadAndRenderPackages();
-    }).catch(function(error) {
-      console.error('[Admin] Error initializing packages:', error);
-    });
-
-    // Listen for menu changes
-    FirebaseService.onAllMenuChange(function(data) {
-      currentMenuData = data;
-      renderMenu(data);
-    });
-
-    // Listen for packages changes
-    FirebaseService.onAllPackagesChange(function(data) {
-      currentPackagesData = data;
-      renderPackagesTable(data);
-    });
-  }
-
-  // Load and render menu
-  function loadAndRenderMenu() {
-    MenuService.getMenuByCategory().then(function(grouped) {
-      renderMenuByCategory(grouped);
-    });
-  }
-
-  // Category display order
-  var CATEGORY_ORDER = ['Mie Ayam', 'Topping Tambahan', 'Minuman'];
-
-  // Badge configuration (matches visitor)
-  var BADGE_CONFIG = {
-    'favorit': { icon: '⭐', label: 'Favorit', class: 'favorit' },
-    'baru': { icon: '🆕', label: 'Baru', class: 'baru' },
-    'bestseller': { icon: '🔥', label: 'Best Seller', class: 'bestseller' },
-    'populer': { icon: '📈', label: 'Populer', class: 'populer' }
-  };
-
-  // Get status text
-  function getStatusText(status) {
-    switch (status) {
-      case 'available': return 'Tersedia';
-      case 'limited': return 'Terbatas';
-      case 'sold_out': return 'Habis';
-      default: return 'Tersedia';
-    }
-  }
-
-  // Format price in "12k" format (matches visitor)
-  function formatPriceK(price) {
-    return Math.round(Number(price) / 1000) + 'k';
-  }
-
-  // Format price in locale format (for packages)
-  function formatPrice(price) {
-    return Number(price).toLocaleString('id-ID');
-  }
-
-  // Render menu grouped by category
-  function renderMenuByCategory(grouped) {
-    var container = document.getElementById('admin-menu');
-    container.innerHTML = '';
-
-    // Sort categories by predefined order
-    var categories = Object.keys(grouped).sort(function(a, b) {
-      var indexA = CATEGORY_ORDER.indexOf(a);
-      var indexB = CATEGORY_ORDER.indexOf(b);
-      
-      // If both are in the order list, sort by index
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
-      // If only one is in the list, it comes first
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      // If neither is in the list, sort alphabetically
-      return a.localeCompare(b);
-    });
-
-    categories.forEach(function(category) {
-      var items = grouped[category];
-      
-      var categorySection = document.createElement('div');
-      categorySection.className = 'menu__category';
-      categorySection.setAttribute('data-category', category);
-
-      var categoryHeader = document.createElement('h3');
-      categoryHeader.className = 'menu__category-title';
-      categoryHeader.innerHTML = '<span class="menu__category-icon">🍜</span> ' + category;
-
-      var itemsGrid = document.createElement('div');
-      itemsGrid.className = 'menu__grid';
-
-      items.forEach(function(item, index) {
-        var card = createMenuCard(item, index, items.length);
-        itemsGrid.appendChild(card);
-      });
-
-      categorySection.appendChild(categoryHeader);
-      categorySection.appendChild(itemsGrid);
-      container.appendChild(categorySection);
-    });
-
-    // Initialize category arrow buttons
-    initCategoryArrowButtons(container);
-  }
-
-  // Render menu from Firebase data
-  function renderMenu(data) {
-    // Group by category
-    var grouped = {};
-    Object.keys(data).forEach(function(itemId) {
-      var item = data[itemId];
-      var category = item.category || 'Lainnya';
-      
-      if (!grouped[category]) {
-        grouped[category] = [];
-      }
-      
-      grouped[category].push({
-        id: itemId,
-        name: item.name,
-        price: item.price,
-        description: item.description,
-        status: item.status,
-        badge: item.badge,
-        order: item.order || 0
-      });
-    });
-
-    // Sort by order within each category
-    Object.keys(grouped).forEach(function(category) {
-      grouped[category].sort(function(a, b) {
-        return a.order - b.order;
-      });
-    });
-
-    renderMenuByCategory(grouped);
-  }
-
-  // Create menu card element (matches visitor structure)
-  function createMenuCard(item, index, totalItems) {
-    var card = document.createElement('div');
-    card.className = 'menu__item-card';
-    card.setAttribute('data-item-id', item.id);
-
-    // === Image container (matches visitor: .menu__item-image) ===
-    var imageContainer = document.createElement('div');
-    imageContainer.className = 'menu__item-image';
-    
-    var img = document.createElement('img');
-    var slug = item.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    img.src = '../images/' + slug + '.jpg';
-    img.alt = item.name;
-    img.loading = 'lazy';
-    img.onerror = function() {
-      this.style.display = 'none';
-      var placeholder = document.createElement('div');
-      placeholder.className = 'menu__item-image-placeholder';
-      placeholder.textContent = 'No Image';
-      this.parentNode.insertBefore(placeholder, this);
-      this.onerror = null;
-    };
-    imageContainer.appendChild(img);
-
-    // Badge on top-left of image (matches visitor)
-    if (item.badge && BADGE_CONFIG[item.badge]) {
-      var badgeEl = document.createElement('span');
-      badgeEl.className = 'menu__item-badge menu__item-badge--' + BADGE_CONFIG[item.badge].class;
-      badgeEl.textContent = BADGE_CONFIG[item.badge].icon + ' ' + BADGE_CONFIG[item.badge].label;
-      imageContainer.appendChild(badgeEl);
-    }
-
-    // Stock status on bottom-right of image (matches visitor)
-    var stockBadge = document.createElement('span');
-    stockBadge.className = 'menu__item-stock menu__item-stock--' + (item.status || 'available');
-    var stockIcon = '';
-    switch (item.status) {
-      case 'available': stockIcon = '✓'; break;
-      case 'limited': stockIcon = '!'; break;
-      case 'sold_out': stockIcon = '✕'; break;
-      default: stockIcon = '✓';
-    }
-    stockBadge.innerHTML = '<span class="menu__item-stock-icon">' + stockIcon + '</span> ' + getStatusText(item.status || 'available');
-    imageContainer.appendChild(stockBadge);
-
-    // === Info section (matches visitor: .menu__item-info) ===
-    var infoSection = document.createElement('div');
-    infoSection.className = 'menu__item-info';
-
-    var nameEl = document.createElement('h4');
-    nameEl.className = 'menu__item-name';
-    nameEl.textContent = item.name;
-
-    var descEl = document.createElement('p');
-    descEl.className = 'menu__item-description';
-    descEl.textContent = item.description || '-';
-
-    var footerEl = document.createElement('div');
-    footerEl.className = 'menu__item-footer';
-
-    var priceEl = document.createElement('p');
-    priceEl.className = 'menu__item-price';
-    var priceSpan = document.createElement('span');
-    priceSpan.className = 'price';
-    priceSpan.textContent = formatPriceK(item.price);
-    priceEl.appendChild(priceSpan);
-    footerEl.appendChild(priceEl);
-
-    infoSection.appendChild(nameEl);
-    infoSection.appendChild(descEl);
-    infoSection.appendChild(footerEl);
-
-    // === Admin controls (below price, with border-top separator) ===
-    var controlsEl = document.createElement('div');
-    controlsEl.className = 'admin-menu__card-controls';
-    controlsEl.style.marginTop = 'var(--space-md)';
-
-    var actionsEl = document.createElement('div');
-    actionsEl.className = 'admin-menu__card-actions';
-
-    var editBtn = document.createElement('button');
-    editBtn.className = 'btn btn--text btn--sm';
-    editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      openEditModal(item.id);
-    });
-
-    var deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn--text btn--danger btn--sm';
-    deleteBtn.textContent = 'Hapus';
-    deleteBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      openDeleteModal(item.id, item.name);
-    });
-
-    actionsEl.appendChild(editBtn);
-    actionsEl.appendChild(deleteBtn);
-
-    // Arrow buttons for reorder
-    var arrowsEl = document.createElement('div');
-    arrowsEl.className = 'item-arrows';
-    arrowsEl.style.display = 'flex';
-    arrowsEl.style.flexDirection = 'column';
-    arrowsEl.style.gap = '4px';
-    arrowsEl.style.marginLeft = 'auto';
-
-    var upBtn = document.createElement('button');
-    upBtn.className = 'arrow-btn arrow-btn--up';
-    upBtn.innerHTML = '▲';
-    upBtn.title = 'Pindah ke atas';
-    upBtn.style.cssText = 'background:var(--color-primary);color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:10px;';
-    upBtn.disabled = index === 0;
-    upBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      moveItemUp(card);
-    });
-
-    var downBtn = document.createElement('button');
-    downBtn.className = 'arrow-btn arrow-btn--down';
-    downBtn.innerHTML = '▼';
-    downBtn.title = 'Pindah ke bawah';
-    downBtn.style.cssText = 'background:var(--color-primary);color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:10px;';
-    downBtn.disabled = index === totalItems - 1;
-    downBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      moveItemDown(card);
-    });
-
-    arrowsEl.appendChild(upBtn);
-    arrowsEl.appendChild(downBtn);
-
-    controlsEl.appendChild(actionsEl);
-    controlsEl.appendChild(arrowsEl);
-
-    // === Assemble card (matches visitor structure) ===
-    card.appendChild(imageContainer);
-    card.appendChild(infoSection);
-    card.appendChild(controlsEl);
-
-    return card;
-  }
-
-  // Handle item reorder
-  function handleItemReorder(orderedIds) {
-    MenuService.updateMenuOrder(orderedIds).then(function(result) {
-      if (!result.success) {
-        console.error('Failed to update order:', result.error);
-        alert('Gagal mengupdate urutan: ' + result.error);
-      }
-    });
-  }
-
-  // Handle category reorder
-  function handleCategoryReorder(orderedCategories) {
-    // Update category order in Firebase
-    var updates = {};
-    orderedCategories.forEach(function(category, index) {
-      // Update order for all items in this category
-      Object.keys(currentMenuData).forEach(function(itemId) {
-        if (currentMenuData[itemId].category === category) {
-          updates[itemId + '/categoryOrder'] = index;
-        }
-      });
-    });
-
-    FirebaseService.menuRef.update(updates).catch(function(error) {
-      console.error('Failed to update category order:', error);
-    });
-  }
-
-  // Move item up in grid
-  function moveItemUp(card) {
-    var grid = card.parentElement;
-    var prevSibling = card.previousElementSibling;
-    
-    if (prevSibling && prevSibling.classList.contains('menu__item-card')) {
-      grid.insertBefore(card, prevSibling);
-      updateItemArrowButtons(grid);
-      
-      // Get new order and update Firebase
-      var orderedIds = [];
-      var items = grid.querySelectorAll('.menu__item-card');
-      items.forEach(function(item) {
-        orderedIds.push(item.getAttribute('data-item-id'));
-      });
-      
-      handleItemReorder(orderedIds);
-    }
-  }
-
-  // Move item down in grid
-  function moveItemDown(card) {
-    var grid = card.parentElement;
-    var nextSibling = card.nextElementSibling;
-    
-    if (nextSibling && nextSibling.classList.contains('menu__item-card')) {
-      grid.insertBefore(nextSibling, card);
-      updateItemArrowButtons(grid);
-      
-      // Get new order and update Firebase
-      var orderedIds = [];
-      var items = grid.querySelectorAll('.menu__item-card');
-      items.forEach(function(item) {
-        orderedIds.push(item.getAttribute('data-item-id'));
-      });
-      
-      handleItemReorder(orderedIds);
-    }
-  }
-
-  // Update arrow button disabled states for items in grid
-  function updateItemArrowButtons(grid) {
-    var items = grid.querySelectorAll('.menu__item-card');
-    
-    items.forEach(function(item, index) {
-      var upBtn = item.querySelector('.arrow-btn--up');
-      var downBtn = item.querySelector('.arrow-btn--down');
-      
-      if (upBtn) upBtn.disabled = index === 0;
-      if (downBtn) downBtn.disabled = index === items.length - 1;
-    });
-  }
-
-  // Move category up
-  function moveCategoryUp(categorySection) {
-    var container = categorySection.parentElement;
-    var prevSibling = categorySection.previousElementSibling;
-    
-    if (prevSibling && prevSibling.classList.contains('menu__category')) {
-      container.insertBefore(categorySection, prevSibling);
-      updateCategoryArrowButtons(container);
-      
-      // Get new order and update Firebase
-      var orderedCategories = [];
-      var categories = container.querySelectorAll('.menu__category');
-      categories.forEach(function(cat) {
-        var title = cat.querySelector('.menu__category-title');
-        if (title) {
-          orderedCategories.push(title.textContent.trim());
-        }
-      });
-      
-      handleCategoryReorder(orderedCategories);
-    }
-  }
-
-  // Move category down
-  function moveCategoryDown(categorySection) {
-    var container = categorySection.parentElement;
-    var nextSibling = categorySection.nextElementSibling;
-    
-    if (nextSibling && nextSibling.classList.contains('menu__category')) {
-      container.insertBefore(nextSibling, categorySection);
-      updateCategoryArrowButtons(container);
-      
-      // Get new order and update Firebase
-      var orderedCategories = [];
-      var categories = container.querySelectorAll('.menu__category');
-      categories.forEach(function(cat) {
-        var title = cat.querySelector('.menu__category-title');
-        if (title) {
-          orderedCategories.push(title.textContent.trim());
-        }
-      });
-      
-      handleCategoryReorder(orderedCategories);
-    }
-  }
-
-  // Update arrow button disabled states for categories
-  function updateCategoryArrowButtons(container) {
-    var categories = container.querySelectorAll('.menu__category');
-    
-    categories.forEach(function(category, index) {
-      var upBtn = category.querySelector('.category-arrow--up');
-      var downBtn = category.querySelector('.category-arrow--down');
-      
-      if (upBtn) upBtn.disabled = index === 0;
-      if (downBtn) downBtn.disabled = index === categories.length - 1;
-    });
-  }
-
-  // Initialize category arrow buttons
-  function initCategoryArrowButtons(container) {
-    var categories = container.querySelectorAll('.menu__category');
-    
-    categories.forEach(function(category, index) {
-      var header = category.querySelector('.menu__category-title');
-      if (!header) return;
-      
-      // Create arrow buttons container
-      var arrowsContainer = document.createElement('div');
-      arrowsContainer.className = 'category-arrows';
-      arrowsContainer.style.display = 'inline-flex';
-      arrowsContainer.style.gap = '4px';
-      arrowsContainer.style.marginLeft = '8px';
-      
-      // Up button
-      var upBtn = document.createElement('button');
-      upBtn.className = 'category-arrow category-arrow--up';
-      upBtn.innerHTML = '▲';
-      upBtn.title = 'Pindah kategori ke atas';
-      upBtn.style.cssText = 'background:var(--color-primary);color:white;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;';
-      upBtn.disabled = index === 0;
-      upBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        moveCategoryUp(category);
-      });
-      
-      // Down button
-      var downBtn = document.createElement('button');
-      downBtn.className = 'category-arrow category-arrow--down';
-      downBtn.innerHTML = '▼';
-      downBtn.title = 'Pindah kategori ke bawah';
-      downBtn.style.cssText = 'background:var(--color-primary);color:white;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;';
-      downBtn.disabled = index === categories.length - 1;
-      downBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        moveCategoryDown(category);
-      });
-      
-      arrowsContainer.appendChild(upBtn);
-      arrowsContainer.appendChild(downBtn);
-      header.appendChild(arrowsContainer);
-    });
-  }
-
-  // Open add modal
-  function openAddModal() {
-    document.getElementById('modal-title').textContent = 'Tambah Menu';
-    document.getElementById('menu-id').value = '';
-    document.getElementById('menu-name').value = '';
-    document.getElementById('menu-category').value = '';
-    document.getElementById('menu-price').value = '';
-    document.getElementById('menu-description').value = '';
-    document.getElementById('menu-status').value = 'available';
-    document.getElementById('menu-badge').value = '';
-    document.getElementById('char-count').textContent = '0';
-    
-    // Reset position control
-    document.getElementById('menu-position-type').value = 'keep';
-    document.getElementById('menu-position-ref').style.display = 'none';
-    document.getElementById('menu-position-ref').innerHTML = '';
-    
-    clearErrors();
-    imageUpload.reset();
-    document.getElementById('menu-modal').style.display = 'flex';
-  }
-
-  // Open edit modal
-  function openEditModal(itemId) {
-    var item = currentMenuData[itemId];
-    if (!item) return;
-
-    document.getElementById('modal-title').textContent = 'Edit Menu';
-    document.getElementById('menu-id').value = itemId;
-    document.getElementById('menu-name').value = item.name || '';
-    document.getElementById('menu-category').value = item.category || '';
-    document.getElementById('menu-price').value = item.price || '';
-    document.getElementById('menu-description').value = item.description || '';
-    document.getElementById('menu-status').value = item.status || 'available';
-    document.getElementById('menu-badge').value = item.badge || '';
-    document.getElementById('char-count').textContent = (item.description || '').length;
-    
-    // Reset position control
-    document.getElementById('menu-position-type').value = 'keep';
-    document.getElementById('menu-position-ref').style.display = 'none';
-    document.getElementById('menu-position-ref').innerHTML = '';
-    
-    clearErrors();
-    imageUpload.reset();
-    document.getElementById('menu-modal').style.display = 'flex';
-  }
-
-  // Open delete modal
-  function openDeleteModal(itemId, itemName) {
-    currentDeleteId = itemId;
-    document.getElementById('delete-item-name').textContent = itemName;
-    document.getElementById('delete-modal').style.display = 'flex';
-  }
-
-  // Close modals
-  function closeModals() {
-    document.getElementById('menu-modal').style.display = 'none';
-    document.getElementById('delete-modal').style.display = 'none';
-    currentDeleteId = null;
-  }
-
-  // Clear form errors
-  function clearErrors() {
-    document.getElementById('name-error').textContent = '';
-    document.getElementById('category-error').textContent = '';
-    document.getElementById('price-error').textContent = '';
-    document.getElementById('description-error').textContent = '';
-  }
-
-  // Show form error
-  function showError(fieldId, message) {
-    document.getElementById(fieldId + '-error').textContent = message;
-  }
-
-  // Handle form submit
-  function handleFormSubmit(e) {
-    e.preventDefault();
-    clearErrors();
-
-    var itemId = document.getElementById('menu-id').value;
-    var data = {
-      name: document.getElementById('menu-name').value,
-      category: document.getElementById('menu-category').value,
-      price: document.getElementById('menu-price').value,
-      description: document.getElementById('menu-description').value,
-      status: document.getElementById('menu-status').value,
-      badge: document.getElementById('menu-badge').value || null
-    };
-
-    // Validate
-    var validation = MenuService.validateMenuItem(data);
-    if (!validation.valid) {
-      validation.errors.forEach(function(error) {
-        if (error.includes('Nama')) showError('name', error);
-        else if (error.includes('Kategori')) showError('category', error);
-        else if (error.includes('Harga')) showError('price', error);
-        else if (error.includes('Deskripsi')) showError('description', error);
-      });
-      return;
-    }
-
-    // Handle position change
-    var positionType = document.getElementById('menu-position-type').value;
-    var positionRef = document.getElementById('menu-position-ref').value;
-
-    // Create or update
-    var promise;
-    if (itemId) {
-      promise = MenuService.updateMenuItem(itemId, data);
-    } else {
-      promise = MenuService.createMenuItem(data);
-    }
-
-    promise.then(function(result) {
-      if (result.success) {
-        // Handle position change
-        if (positionType !== 'keep' && (itemId || result.itemId)) {
-          var targetId = itemId || result.itemId;
-          var targetCategory = data.category;
-          
-          // Get all items in category
-          MenuService.getMenuByCategory().then(function(grouped) {
-            var categoryItems = grouped[targetCategory] || [];
-            
-            // Calculate new position
-            var newOrder = null;
-            if (positionType === 'first') {
-              newOrder = 1;
-            } else if (positionType === 'last') {
-              newOrder = categoryItems.length + 1;
-            } else if ((positionType === 'before' || positionType === 'after') && positionRef) {
-              var refItem = categoryItems.find(function(item) { return item.id === positionRef; });
-              if (refItem) {
-                newOrder = positionType === 'before' ? refItem.order : refItem.order + 1;
-              }
-            }
-            
-            if (newOrder !== null) {
-              // Update order for all items
-              var updates = {};
-              categoryItems.forEach(function(item) {
-                if (item.id === targetId) {
-                  updates[item.id + '/order'] = newOrder;
-                } else if (item.order >= newOrder) {
-                  updates[item.id + '/order'] = item.order + 1;
-                }
-              });
-              
-              // Also update order for items that need to shift
-              categoryItems.forEach(function(item) {
-                if (item.id !== targetId && item.order >= newOrder) {
-                  updates[item.id + '/order'] = item.order + 1;
-                }
-              });
-              
-              FirebaseService.menuRef.update(updates).then(function() {
-                closeModals();
-                loadAndRenderMenu();
-              });
-            } else {
-              closeModals();
-              loadAndRenderMenu();
-            }
-          });
-        } else {
-          closeModals();
-          loadAndRenderMenu();
-        }
-      } else {
-        alert('Error: ' + result.error);
-      }
-    });
-  }
-
-  // Handle delete confirm
-  function handleDeleteConfirm() {
-    if (!currentDeleteId) return;
-
-    MenuService.deleteMenuItem(currentDeleteId).then(function(result) {
-      if (result.success) {
-        closeModals();
-        loadAndRenderMenu();
-      } else {
-        alert('Error: ' + result.error);
-      }
-    });
-  }
-
-  // Auto-generate description
-  function handleAutoGenerate() {
-    var name = document.getElementById('menu-name').value;
-    var category = document.getElementById('menu-category').value;
-
-    if (!name) {
-      alert('Isi nama menu terlebih dahulu');
-      return;
-    }
-
-    var description = DescriptionTemplates.generateDescription(name, category, {
-      maxLength: 200
-    });
-
-    document.getElementById('menu-description').value = description;
-    document.getElementById('char-count').textContent = description.length;
-  }
-
   // Initialize Image Upload Service
-  var imageUpload = ImageUploadService.init({
+  imageUpload = ImageUploadService.init({
     fileInput: document.getElementById('menu-image'),
     preview: document.getElementById('image-preview'),
     previewContainer: document.getElementById('image-preview-container'),
@@ -753,414 +1165,12 @@
     }
   });
 
-  function populatePositionRef() {
-    var category = document.getElementById('menu-category').value;
-    var currentId = document.getElementById('menu-id').value;
-    
-    positionRefSelect.innerHTML = '';
-    
-    if (!category || !currentMenuData) return;
-    
-    // Get items in same category
-    var items = [];
-    Object.keys(currentMenuData).forEach(function(id) {
-      var item = currentMenuData[id];
-      if (item.category === category && id !== currentId) {
-        items.push({ id: id, name: item.name, order: item.order || 0 });
-      }
-    });
-    
-    // Sort by order
-    items.sort(function(a, b) { return a.order - b.order; });
-    
-    // Populate dropdown
-    items.forEach(function(item) {
-      var option = document.createElement('option');
-      option.value = item.id;
-      option.textContent = item.name;
-      positionRefSelect.appendChild(option);
-    });
-  }
-
-  function calculateNewPosition(positionType, refItemId, categoryItems) {
-    if (positionType === 'first') {
-      return 1;
-    } else if (positionType === 'last') {
-      return categoryItems.length + 1;
-    } else if (positionType === 'before' && refItemId) {
-      var refItem = categoryItems.find(function(item) { return item.id === refItemId; });
-      return refItem ? refItem.order : categoryItems.length + 1;
-    } else if (positionType === 'after' && refItemId) {
-      var refItem = categoryItems.find(function(item) { return item.id === refItemId; });
-      return refItem ? refItem.order + 1 : categoryItems.length + 1;
-    }
-    return null;
-  }
-
-  // =========================================================================
-  // Tab Navigation
-  // =========================================================================
-  function switchTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.admin-tabs__btn').forEach(function(btn) {
-      btn.classList.remove('admin-tabs__btn--active');
-    });
-    document.querySelector('[data-tab="' + tabName + '"]').classList.add('admin-tabs__btn--active');
-
-    // Update tab content
-    document.querySelectorAll('.admin-tab-content').forEach(function(content) {
-      content.style.display = 'none';
-    });
-    document.getElementById('tab-content-' + tabName).style.display = 'block';
-  }
-
+  // Tab navigation
   document.querySelectorAll('.admin-tabs__btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       switchTab(this.getAttribute('data-tab'));
     });
   });
-
-  // =========================================================================
-  // Packages CRUD
-  // =========================================================================
-
-  // Load and render packages
-  function loadAndRenderPackages() {
-    FirebaseService.getPackages().then(function(data) {
-      currentPackagesData = data;
-      renderPackagesTable(data);
-    });
-  }
-
-  // Render packages table
-  function renderPackagesTable(data) {
-    var tbody = document.getElementById('packages-table-body');
-    tbody.innerHTML = '';
-
-    var packageKeys = Object.keys(data);
-
-    if (packageKeys.length === 0) {
-      var emptyRow = document.createElement('tr');
-      emptyRow.innerHTML = '<td colspan="8" class="packages-table__empty">Belum ada paket. Klik "Tambah Paket" untuk membuat paket baru.</td>';
-      tbody.appendChild(emptyRow);
-      return;
-    }
-
-    // Sort by order
-    packageKeys.sort(function(a, b) {
-      return (data[a].order || 0) - (data[b].order || 0);
-    });
-
-    packageKeys.forEach(function(packageId) {
-      var pkg = data[packageId];
-      var row = document.createElement('tr');
-      row.setAttribute('data-package-id', packageId);
-
-      // Icon
-      var iconCell = document.createElement('td');
-      iconCell.className = 'packages-table__icon';
-      iconCell.textContent = pkg.icon || '🍜';
-
-      // Name
-      var nameCell = document.createElement('td');
-      nameCell.className = 'packages-table__name';
-      nameCell.textContent = pkg.name;
-
-      // Price
-      var priceCell = document.createElement('td');
-      priceCell.className = 'packages-table__price';
-      priceCell.textContent = 'Rp ' + formatPrice(pkg.price);
-
-      // Items count
-      var itemsCell = document.createElement('td');
-      itemsCell.className = 'packages-table__items';
-      var itemsCount = (pkg.items && pkg.items.length) ? pkg.items.length : 0;
-      itemsCell.textContent = itemsCount + ' item' + (itemsCount !== 1 ? 's' : '');
-
-      // Tag
-      var tagCell = document.createElement('td');
-      var tagBadge = document.createElement('span');
-      tagBadge.className = 'packages-badge packages-badge--' + (pkg.tag || 'basic').toLowerCase().replace(/\s+/g, '-');
-      tagBadge.textContent = pkg.tag || 'Basic';
-      tagCell.appendChild(tagBadge);
-
-      // Featured
-      var featuredCell = document.createElement('td');
-      if (pkg.isFeatured) {
-        var featuredBadge = document.createElement('span');
-        featuredBadge.className = 'packages-badge packages-badge--featured';
-        featuredBadge.textContent = '⭐ Featured';
-        featuredCell.appendChild(featuredBadge);
-      } else {
-        featuredCell.textContent = '-';
-      }
-
-      // Status
-      var statusCell = document.createElement('td');
-      var statusBadge = document.createElement('span');
-      statusBadge.className = 'packages-badge packages-badge--' + (pkg.isActive ? 'active' : 'inactive');
-      statusBadge.textContent = pkg.isActive ? 'Aktif' : 'Nonaktif';
-      statusCell.appendChild(statusBadge);
-
-      // Actions
-      var actionsCell = document.createElement('td');
-      actionsCell.className = 'packages-table__actions';
-
-      var editBtn = document.createElement('button');
-      editBtn.className = 'btn btn--text btn--sm';
-      editBtn.textContent = 'Edit';
-      editBtn.addEventListener('click', function() {
-        openPackageEditModal(packageId);
-      });
-
-      var deleteBtn = document.createElement('button');
-      deleteBtn.className = 'btn btn--text btn--danger btn--sm';
-      deleteBtn.textContent = 'Hapus';
-      deleteBtn.addEventListener('click', function() {
-        openPackageDeleteModal(packageId, pkg.name);
-      });
-
-      actionsCell.appendChild(editBtn);
-      actionsCell.appendChild(deleteBtn);
-
-      row.appendChild(iconCell);
-      row.appendChild(nameCell);
-      row.appendChild(priceCell);
-      row.appendChild(itemsCell);
-      row.appendChild(tagCell);
-      row.appendChild(featuredCell);
-      row.appendChild(statusCell);
-      row.appendChild(actionsCell);
-
-      tbody.appendChild(row);
-    });
-  }
-
-  // Load menu items for package items checkboxes
-  function loadPackageItemsCheckboxes(selectedItems) {
-    var container = document.getElementById('package-items-checkboxes');
-    container.innerHTML = '';
-
-    if (!currentMenuData || Object.keys(currentMenuData).length === 0) {
-      container.innerHTML = '<span class="form-help">Memuat menu...</span>';
-      return;
-    }
-
-    // Sort by category then by order
-    var menuItems = Object.keys(currentMenuData).map(function(id) {
-      return {
-        id: id,
-        name: currentMenuData[id].name,
-        category: currentMenuData[id].category || 'Lainnya',
-        order: currentMenuData[id].order || 0
-      };
-    }).sort(function(a, b) {
-      if (a.category !== b.category) return a.category.localeCompare(b.category);
-      return a.order - b.order;
-    });
-
-    var currentCategory = '';
-    menuItems.forEach(function(item) {
-      if (item.category !== currentCategory) {
-        currentCategory = item.category;
-        var categoryLabel = document.createElement('div');
-        categoryLabel.className = 'package-items-category';
-        categoryLabel.textContent = currentCategory;
-        container.appendChild(categoryLabel);
-      }
-
-      var label = document.createElement('label');
-      label.className = 'package-items-item';
-
-      var checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.name = 'package-items';
-      checkbox.value = item.id;
-      checkbox.checked = selectedItems && selectedItems.indexOf(item.id) !== -1;
-
-      var span = document.createElement('span');
-      span.textContent = item.name;
-
-      label.appendChild(checkbox);
-      label.appendChild(span);
-      container.appendChild(label);
-    });
-  }
-
-  // Open add package modal
-  function openPackageAddModal() {
-    document.getElementById('package-modal-title').textContent = 'Tambah Paket';
-    document.getElementById('package-id').value = '';
-    document.getElementById('package-name').value = '';
-    document.getElementById('package-description').value = '';
-    document.getElementById('package-icon').value = '';
-    document.getElementById('package-price').value = '';
-    document.getElementById('package-tag').value = 'Basic';
-    document.getElementById('package-featured').checked = false;
-    document.getElementById('package-status').value = 'true';
-    document.getElementById('package-order').value = '';
-    document.getElementById('package-whatsapp').value = '';
-
-    loadPackageItemsCheckboxes([]);
-    clearPackageErrors();
-    document.getElementById('package-modal').style.display = 'flex';
-  }
-
-  // Open edit package modal
-  function openPackageEditModal(packageId) {
-    var pkg = currentPackagesData[packageId];
-    if (!pkg) return;
-
-    document.getElementById('package-modal-title').textContent = 'Edit Paket';
-    document.getElementById('package-id').value = packageId;
-    document.getElementById('package-name').value = pkg.name || '';
-    document.getElementById('package-description').value = pkg.description || '';
-    document.getElementById('package-icon').value = pkg.icon || '';
-    document.getElementById('package-price').value = pkg.price || '';
-    document.getElementById('package-tag').value = pkg.tag || 'Basic';
-    document.getElementById('package-featured').checked = pkg.isFeatured || false;
-    document.getElementById('package-status').value = pkg.isActive ? 'true' : 'false';
-    document.getElementById('package-order').value = pkg.order || '';
-    document.getElementById('package-whatsapp').value = pkg.whatsappMessage || '';
-
-    loadPackageItemsCheckboxes(pkg.items || []);
-    clearPackageErrors();
-    document.getElementById('package-modal').style.display = 'flex';
-  }
-
-  // Open delete package modal
-  function openPackageDeleteModal(packageId, packageName) {
-    currentPackageDeleteId = packageId;
-    document.getElementById('package-delete-name').textContent = packageName;
-    document.getElementById('package-delete-modal').style.display = 'flex';
-  }
-
-  // Close package modals
-  function closePackageModals() {
-    document.getElementById('package-modal').style.display = 'none';
-    document.getElementById('package-delete-modal').style.display = 'none';
-    currentPackageDeleteId = null;
-  }
-
-  // Clear package form errors
-  function clearPackageErrors() {
-    document.getElementById('package-name-error').textContent = '';
-    document.getElementById('package-description-error').textContent = '';
-    document.getElementById('package-icon-error').textContent = '';
-    document.getElementById('package-price-error').textContent = '';
-  }
-
-  // Validate package form
-  function validatePackageForm() {
-    var errors = [];
-    var name = document.getElementById('package-name').value.trim();
-    var description = document.getElementById('package-description').value.trim();
-    var icon = document.getElementById('package-icon').value.trim();
-    var price = document.getElementById('package-price').value;
-
-    if (!name) {
-      errors.push({ field: 'package-name', message: 'Nama paket wajib diisi' });
-    }
-    if (!description) {
-      errors.push({ field: 'package-description', message: 'Deskripsi wajib diisi' });
-    }
-    if (!icon) {
-      errors.push({ field: 'package-icon', message: 'Icon wajib diisi' });
-    }
-    if (!price || price < 0) {
-      errors.push({ field: 'package-price', message: 'Harga wajib diisi dan harus lebih dari 0' });
-    }
-
-    return errors;
-  }
-
-  // Handle package form submit
-  function handlePackageFormSubmit(e) {
-    e.preventDefault();
-    clearPackageErrors();
-
-    var errors = validatePackageForm();
-    if (errors.length > 0) {
-      errors.forEach(function(err) {
-        document.getElementById(err.field + '-error').textContent = err.message;
-      });
-      return;
-    }
-
-    var packageId = document.getElementById('package-id').value;
-
-    // Get selected items
-    var selectedItems = [];
-    document.querySelectorAll('input[name="package-items"]:checked').forEach(function(cb) {
-      selectedItems.push(cb.value);
-    });
-
-    var data = {
-      name: document.getElementById('package-name').value.trim(),
-      description: document.getElementById('package-description').value.trim(),
-      icon: document.getElementById('package-icon').value.trim(),
-      items: selectedItems,
-      price: parseInt(document.getElementById('package-price').value, 10),
-      tag: document.getElementById('package-tag').value,
-      isFeatured: document.getElementById('package-featured').checked,
-      isActive: document.getElementById('package-status').value === 'true',
-      order: parseInt(document.getElementById('package-order').value, 10) || 0,
-      whatsappMessage: document.getElementById('package-whatsapp').value.trim()
-    };
-
-    // If setting featured, unset other featured packages first
-    var promise;
-    if (data.isFeatured && (!packageId || !currentPackagesData[packageId] || !currentPackagesData[packageId].isFeatured)) {
-      promise = unsetAllFeatured().then(function() {
-        if (packageId) {
-          return FirebaseService.updatePackage(packageId, data);
-        } else {
-          return FirebaseService.addPackage(data);
-        }
-      });
-    } else {
-      if (packageId) {
-        promise = FirebaseService.updatePackage(packageId, data);
-      } else {
-        promise = FirebaseService.addPackage(data);
-      }
-    }
-
-    promise.then(function() {
-      closePackageModals();
-      loadAndRenderPackages();
-    }).catch(function(error) {
-      alert('Error: ' + error.message);
-    });
-  }
-
-  // Unset all featured packages
-  function unsetAllFeatured() {
-    var updates = {};
-    Object.keys(currentPackagesData).forEach(function(id) {
-      if (currentPackagesData[id].isFeatured) {
-        updates[id + '/isFeatured'] = false;
-      }
-    });
-
-    if (Object.keys(updates).length === 0) {
-      return Promise.resolve();
-    }
-
-    return FirebaseService.packagesRef.update(updates);
-  }
-
-  // Handle package delete confirm
-  function handlePackageDeleteConfirm() {
-    if (!currentPackageDeleteId) return;
-
-    FirebaseService.deletePackage(currentPackageDeleteId).then(function() {
-      closePackageModals();
-      loadAndRenderPackages();
-    }).catch(function(error) {
-      alert('Error: ' + error.message);
-    });
-  }
 
   // Setup package event listeners
   document.getElementById('add-package-button').addEventListener('click', openPackageAddModal);
@@ -1179,6 +1189,33 @@
     });
   });
 
-  // Initialize
+  // Initialize data
   initMenuData();
-})();
+}
+
+// Export for ES modules
+export {
+  initDashboard,
+  loadAndRenderMenu,
+  loadAndRenderPackages,
+  openAddModal,
+  openPackageAddModal,
+  switchTab
+};
+
+// Backward compatibility
+window.AdminDashboard = {
+  initDashboard,
+  loadAndRenderMenu,
+  loadAndRenderPackages,
+  openAddModal,
+  openPackageAddModal,
+  switchTab
+};
+
+// Auto-initialize when loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  initDashboard();
+}

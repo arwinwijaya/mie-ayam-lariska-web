@@ -1730,7 +1730,10 @@ ul {
 
 /* === Order Button === */
 .menu__item-order {
-  padding: var(--space-xs) var(--space-md);
+  color: var(--color-button-text);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #A30000 100%);
+  border: none;
+  padding: 6px 20px;
   font-size: var(--font-size-sm);
   font-weight: 600;
   border-radius: var(--radius-full);
@@ -1740,9 +1743,12 @@ ul {
   justify-content: center;
   transition: all var(--transition-fast);
   white-space: nowrap;
+  min-width: 60px;
+  text-align: center;
 }
 
 .menu__item-order:hover {
+  background: linear-gradient(135deg, #A30000 0%, var(--color-primary) 100%);
   transform: scale(1.05);
   box-shadow: var(--shadow-md);
 }

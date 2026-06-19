@@ -92,7 +92,7 @@ function renderMenuByCategory(grouped) {
 
     var categoryHeader = document.createElement('h3');
     categoryHeader.className = 'menu__category-title';
-    categoryHeader.innerHTML = '<span class="menu__category-icon">🍜</span> ' + category;
+    categoryHeader.innerHTML = '<span class="menu__category-icon">🍜</span> ' + sanitizeHtml(category);
 
     var itemsGrid = document.createElement('div');
     itemsGrid.className = 'menu__grid';

@@ -813,7 +813,7 @@ ul {
   color: var(--color-button-text);
   background: linear-gradient(135deg, var(--color-primary) 0%, #A30000 100%);
   padding: 6px 20px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   min-width: 60px;
   text-align: center;
@@ -824,7 +824,7 @@ ul {
 .badge {
   display: inline-block;
   padding: 4px 10px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
   font-weight: 700;
   text-transform: uppercase;

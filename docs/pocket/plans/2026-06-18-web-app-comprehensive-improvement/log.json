@@ -90,8 +90,9 @@
         {
           "id": "T12",
           "name": "Add Accessibility Improvements",
-          "status": "WAITING",
-          "depends": "T9"
+          "status": "DONE",
+          "depends": "T9",
+          "done_sha": "f1dc59eb666691d026471c0d82ad0b950293d28e"
         }
       ]
     }

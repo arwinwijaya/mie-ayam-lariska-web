@@ -11,6 +11,7 @@
  */
 
 import { debugLog, debugWarn } from './debug.js';
+import { getStatusText, BADGE_CONFIG, generateSlug, formatPriceK, sanitizeHtml } from './utils.js';
 
 // ---------------------------------------------------------------------------
 // Navigation Toggle
@@ -188,18 +189,6 @@ var MENU_STOCK_MAP = {
 };
 
 /**
- * Get status display text in Indonesian
- */
-function getStatusText(status) {
-  switch (status) {
-    case 'available': return 'Tersedia';
-    case 'limited': return 'Terbatas';
-    case 'sold_out': return 'Habis';
-    default: return 'Tersedia';
-  }
-}
-
-/**
  * Update a single menu item's stock badge
  */
 function updateMenuItemBadge(name, status) {
@@ -348,16 +337,6 @@ function initStockUpdates() {
 // ---------------------------------------------------------------------------
 // Menu Badges
 // ---------------------------------------------------------------------------
-
-/**
- * Badge configuration
- */
-var BADGE_CONFIG = {
-  'favorit': { icon: '⭐', label: 'Favorit', class: 'favorit' },
-  'baru': { icon: '🆕', label: 'Baru', class: 'baru' },
-  'bestseller': { icon: '🔥', label: 'Best Seller', class: 'bestseller' },
-  'populer': { icon: '📈', label: 'Populer', class: 'populer' }
-};
 
 /**
  * Update menu badge on visitor page

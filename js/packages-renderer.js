@@ -8,6 +8,7 @@
  */
 
 import { debugWarn } from './debug.js';
+import { escapeHtml, formatPriceK, generateSlug } from './utils.js';
 
 const FALLBACK_PACKAGES = {
   'paket_hemat': {
@@ -63,12 +64,6 @@ const FALLBACK_PACKAGES = {
     order: 4
   }
 };
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
-}
 
 function resolveItemNames(pkg, menuData) {
   if (pkg.itemNames && pkg.itemNames.length > 0) return pkg.itemNames;

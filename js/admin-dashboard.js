@@ -11,6 +11,7 @@
 'use strict';
 
 import { debugLog } from './debug.js';
+import { getStatusText, BADGE_CONFIG, formatPriceK, formatPrice, generateSlug, sanitizeHtml } from './utils.js';
 
 // State
 var currentMenuData = {};
@@ -60,34 +61,6 @@ function loadAndRenderMenu() {
 
 // Category display order
 var CATEGORY_ORDER = ['Mie Ayam', 'Topping Tambahan', 'Minuman'];
-
-// Badge configuration (matches visitor)
-var BADGE_CONFIG = {
-  'favorit': { icon: '⭐', label: 'Favorit', class: 'favorit' },
-  'baru': { icon: '🆕', label: 'Baru', class: 'baru' },
-  'bestseller': { icon: '🔥', label: 'Best Seller', class: 'bestseller' },
-  'populer': { icon: '📈', label: 'Populer', class: 'populer' }
-};
-
-// Get status text
-function getStatusText(status) {
-  switch (status) {
-    case 'available': return 'Tersedia';
-    case 'limited': return 'Terbatas';
-    case 'sold_out': return 'Habis';
-    default: return 'Tersedia';
-  }
-}
-
-// Format price in "12k" format (matches visitor)
-function formatPriceK(price) {
-  return Math.round(Number(price) / 1000) + 'k';
-}
-
-// Format price in locale format (for packages)
-function formatPrice(price) {
-  return Number(price).toLocaleString('id-ID');
-}
 
 // Render menu grouped by category
 function renderMenuByCategory(grouped) {

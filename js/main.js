@@ -126,26 +126,29 @@ function setAllBadgesToAvailable() {
   cards.forEach(function(card) {
     var nameEl = card.querySelector('.menu__item-name');
     if (!nameEl) return;
-    var name = nameEl.textContent.trim();
 
-    // Add stock badge if not exists
-    var imageContainer = card.querySelector('.menu__item-image');
-    if (imageContainer && !card.querySelector('.menu__item-stock')) {
+    // Add stock badge in footer if not exists
+    var footer = card.querySelector('.menu__item-footer');
+    if (footer && !footer.querySelector('.menu__item-footer-stock')) {
       var stockBadge = document.createElement('span');
-      stockBadge.className = 'menu__item-stock menu__item-stock--available';
-      stockBadge.innerHTML = '<span class="menu__item-stock-icon">✓</span> Tersedia';
-      imageContainer.appendChild(stockBadge);
-    }
+      stockBadge.className = 'badge badge--available menu__item-footer-stock';
+      stockBadge.textContent = 'Tersedia';
 
-    // Add info badge if not exists
-    var info = card.querySelector('.menu__item-info');
-    if (info && !card.querySelector('.badge')) {
-      var badge = document.createElement('span');
-      badge.className = 'badge badge--available';
-      badge.textContent = 'Tersedia';
-      var priceEl = info.querySelector('.menu__item-price');
-      if (priceEl) {
-        priceEl.parentNode.insertBefore(badge, priceEl.nextSibling);
+      var separator = document.createElement('span');
+      separator.className = 'menu__item-footer-separator';
+
+      footer.insertBefore(separator, footer.firstChild);
+      footer.insertBefore(stockBadge, separator);
+
+      // Add separator after price if order button exists
+      var orderBtn = footer.querySelector('.menu__item-order');
+      if (orderBtn) {
+        var separator2 = document.createElement('span');
+        separator2.className = 'menu__item-footer-separator';
+        var priceEl = footer.querySelector('.menu__item-price');
+        if (priceEl) {
+          priceEl.parentNode.insertBefore(separator2, priceEl.nextSibling);
+        }
       }
     }
   });
@@ -195,62 +198,55 @@ function updateMenuItemBadge(name, status) {
     var nameEl = card.querySelector('.menu__item-name');
     if (!nameEl || nameEl.textContent.trim() !== name) return;
 
-    // Remove existing stock badge
+    // Remove existing stock badge in image area
     var existingStockBadge = card.querySelector('.menu__item-stock');
     if (existingStockBadge) {
       existingStockBadge.remove();
     }
 
-    // Remove existing badge
+    // Remove existing badge in info section
     var existingBadge = card.querySelector('.badge');
     if (existingBadge) {
       existingBadge.remove();
     }
 
-    // Create stock badge in image area
-    var imageContainer = card.querySelector('.menu__item-image');
-    if (imageContainer) {
-      var stockBadge = document.createElement('span');
-      stockBadge.className = 'menu__item-stock menu__item-stock--' + status;
-      
-      // Set icon based on status
-      var icon = '';
-      switch (status) {
-        case 'available':
-          icon = '✓';
-          break;
-        case 'limited':
-          icon = '!';
-          break;
-        case 'sold_out':
-          icon = '✕';
-          break;
-        default:
-          icon = '✓';
-      }
-      
-      stockBadge.innerHTML = '<span class="menu__item-stock-icon">' + icon + '</span> ' + AppUtils.getStatusText(status);
-      imageContainer.appendChild(stockBadge);
+    // Get or create footer
+    var footer = card.querySelector('.menu__item-footer');
+    if (!footer) return;
+
+    // Remove existing stock in footer
+    var existingFooterStock = footer.querySelector('.menu__item-footer-stock');
+    if (existingFooterStock) {
+      existingFooterStock.remove();
     }
+    var existingSeparators = footer.querySelectorAll('.menu__item-footer-separator');
+    existingSeparators.forEach(function(sep) { sep.remove(); });
 
-    // Create badge in info section
-    var badge = document.createElement('span');
-    badge.className = 'badge badge--' + status;
-    badge.textContent = AppUtils.getStatusText(status);
+    // Create stock badge in footer
+    var stockBadge = document.createElement('span');
+    stockBadge.className = 'badge badge--' + status + ' menu__item-footer-stock';
+    stockBadge.textContent = AppUtils.getStatusText(status);
 
-    // Add badge to info section
-    var info = card.querySelector('.menu__item-info');
-    if (info) {
-      var priceEl = info.querySelector('.menu__item-price');
+    // Create separator
+    var separator1 = document.createElement('span');
+    separator1.className = 'menu__item-footer-separator';
+
+    // Insert stock badge and separator at the beginning of footer
+    footer.insertBefore(separator1, footer.firstChild);
+    footer.insertBefore(stockBadge, separator1);
+
+    // Add separator after price if order button exists
+    var orderBtn = footer.querySelector('.menu__item-order');
+    if (orderBtn) {
+      var separator2 = document.createElement('span');
+      separator2.className = 'menu__item-footer-separator';
+      var priceEl = footer.querySelector('.menu__item-price');
       if (priceEl) {
-        priceEl.parentNode.insertBefore(badge, priceEl);
-      } else {
-        info.appendChild(badge);
+        priceEl.parentNode.insertBefore(separator2, priceEl.nextSibling);
       }
     }
 
     // Update card styling for sold out items
-    var orderBtn = card.querySelector('.menu__item-order');
     if (status === 'sold_out') {
       card.style.opacity = '0.6';
       card.style.pointerEvents = 'none';

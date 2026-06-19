@@ -794,14 +794,26 @@ ul {
 .menu__item-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   margin-top: auto;
   padding-top: var(--space-md);
   border-top: 2px dashed var(--color-border);
+  gap: var(--space-sm);
 }
 
-.menu__item-card:not(.menu__item-card--no-order) .menu__item-footer {
-  justify-content: space-between;
+.menu__item-footer-separator {
+  width: 1px;
+  height: 24px;
+  background-color: var(--color-border);
+  flex-shrink: 0;
+}
+
+.menu__item-card--no-order .menu__item-footer {
+  justify-content: center;
+}
+
+.menu__item-card--no-order .menu__item-footer .menu__item-footer-separator:last-child {
+  display: none;
 }
 
 .menu__item-card--no-order .menu__item-price {

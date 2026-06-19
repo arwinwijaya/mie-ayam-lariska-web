@@ -12,6 +12,8 @@
  * Architecture: ES Module, exposes AdminAuth via export and window.AdminAuth
  */
 
+import { debugLog, debugWarn } from './debug.js';
+
 /** @constant {string} ADMIN_USERNAME - Admin username for authentication */
 const ADMIN_USERNAME = 'lariska';
 
@@ -207,10 +209,10 @@ const AdminAuth = {
 
     return sessionRef.set(sessionData)
       .then(function () {
-        console.log('[AdminAuth] Admin session created in Firebase for uid:', uid);
+        debugLog('[AdminAuth] Admin session created in Firebase for uid:', uid);
       })
       .catch(function (error) {
-        console.warn('[AdminAuth] Failed to create admin session in Firebase:', error.message);
+        debugWarn('[AdminAuth] Failed to create admin session in Firebase:', error.message);
       });
   },
 
@@ -228,10 +230,10 @@ const AdminAuth = {
         var db = firebase.database();
         var sessionRef = db.ref('admin_sessions/' + session.uid);
         sessionRef.remove().catch(function (error) {
-          console.warn('[AdminAuth] Failed to remove Firebase session:', error.message);
+          debugWarn('[AdminAuth] Failed to remove Firebase session:', error.message);
         });
       } catch (e) {
-        console.warn('[AdminAuth] Firebase database not available for cleanup:', e.message);
+        debugWarn('[AdminAuth] Firebase database not available for cleanup:', e.message);
       }
     }
 
@@ -239,7 +241,7 @@ const AdminAuth = {
     if (typeof firebase !== 'undefined' && firebase.auth) {
       try {
         firebase.auth().signOut().catch(function (error) {
-          console.warn('[AdminAuth] Firebase sign out failed:', error.message);
+          debugWarn('[AdminAuth] Firebase sign out failed:', error.message);
         });
       } catch (e) {
         // Ignore

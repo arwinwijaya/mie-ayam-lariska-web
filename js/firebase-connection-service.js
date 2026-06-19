@@ -7,6 +7,8 @@
  * Architecture: ES Module, exposes FirebaseConnectionService via export and window.FirebaseConnectionService
  */
 
+import { debugLog, debugError } from './debug.js';
+
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
@@ -65,9 +67,9 @@ function handleConnectionChange(connected) {
   updateStatusDisplay(connected);
   
   if (connected) {
-    console.log('[FirebaseConnection] Connected to Firebase');
+    debugLog('[FirebaseConnection] Connected to Firebase');
   } else {
-    console.log('[FirebaseConnection] Disconnected from Firebase');
+    debugLog('[FirebaseConnection] Disconnected from Firebase');
   }
 }
 
@@ -91,7 +93,7 @@ function init(options) {
 
   var FirebaseService = window.FirebaseService;
   if (!FirebaseService || !FirebaseService.db) {
-    console.error('[FirebaseConnection] FirebaseService not available');
+    debugError('[FirebaseConnection] FirebaseService not available');
     updateStatusDisplay(false);
     return;
   }
@@ -114,7 +116,7 @@ function init(options) {
     });
   }
 
-  console.log('[FirebaseConnection] Initialized connection monitoring');
+  debugLog('[FirebaseConnection] Initialized connection monitoring');
 }
 
 /**
@@ -123,7 +125,7 @@ function init(options) {
  */
 function reconnect() {
   if (isReconnecting) {
-    console.log('[FirebaseConnection] Reconnect already in progress');
+    debugLog('[FirebaseConnection] Reconnect already in progress');
     return;
   }
 
@@ -132,12 +134,12 @@ function reconnect() {
 
   var FirebaseService = window.FirebaseService;
   if (!FirebaseService || !FirebaseService.db) {
-    console.error('[FirebaseConnection] FirebaseService not available');
+    debugError('[FirebaseConnection] FirebaseService not available');
     isReconnecting = false;
     return;
   }
 
-  console.log('[FirebaseConnection] Attempting to reconnect...');
+  debugLog('[FirebaseConnection] Attempting to reconnect...');
 
   // Force Firebase to go online
   FirebaseService.db.goOnline();
@@ -151,9 +153,9 @@ function reconnect() {
       updateStatusDisplay(connected);
 
       if (connected) {
-        console.log('[FirebaseConnection] Reconnected successfully');
+        debugLog('[FirebaseConnection] Reconnected successfully');
       } else {
-        console.log('[FirebaseConnection] Reconnect failed');
+        debugLog('[FirebaseConnection] Reconnect failed');
       }
     });
   }, 2000);

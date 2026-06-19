@@ -10,6 +10,8 @@
  * Architecture: ES Module, exposes initApp via export and window.initApp
  */
 
+import { debugLog, debugWarn } from './debug.js';
+
 // ---------------------------------------------------------------------------
 // Navigation Toggle
 // ---------------------------------------------------------------------------
@@ -304,7 +306,7 @@ function initStockUpdates() {
   // Check if FirebaseService is available
   var FirebaseService = window.FirebaseService;
   if (typeof FirebaseService === 'undefined') {
-    console.warn('[Main] FirebaseService not available. Stock updates disabled.');
+    debugWarn('[Main] FirebaseService not available. Stock updates disabled.');
     return;
   }
 
@@ -313,14 +315,14 @@ function initStockUpdates() {
 
   // Seed initial stock data if needed
   FirebaseService.seedInitialStock().then(function () {
-    console.log('[Main] Stock data initialized');
+    debugLog('[Main] Stock data initialized');
   }).catch(function (error) {
     console.error('[Main] Error initializing stock:', error);
   });
 
   // Listen to all stock changes
   FirebaseService.onAllStockChange(function (stockData) {
-    console.log('[Main] Stock data updated:', stockData);
+    debugLog('[Main] Stock data updated:', stockData);
 
     // Transition from skeleton to content on first data arrival
     if (!_firebaseDataReceived) {
@@ -392,7 +394,7 @@ function updateMenuBadge(name, badge) {
 function initBadgeUpdates() {
   var FirebaseService = window.FirebaseService;
   if (typeof FirebaseService === 'undefined') {
-    console.warn('[Main] FirebaseService not available. Badge updates disabled.');
+    debugWarn('[Main] FirebaseService not available. Badge updates disabled.');
     return;
   }
 
@@ -401,7 +403,7 @@ function initBadgeUpdates() {
     var menuData = snapshot.val();
     if (!menuData) return;
 
-    console.log('[Main] Menu data updated for badges');
+    debugLog('[Main] Menu data updated for badges');
 
     // Update badges for each menu item
     Object.keys(menuData).forEach(function (itemId) {
@@ -587,7 +589,7 @@ function initSmoothScroll() {
  * Call this when DOM is ready
  */
 function initApp() {
-  console.log('[Main] Initializing Mie Ayam Lariska Web App...');
+  debugLog('[Main] Initializing Mie Ayam Lariska Web App...');
 
   initNavigation();
   initFAQ();
@@ -613,7 +615,7 @@ function initApp() {
     };
   }
 
-  console.log('[Main] App initialized successfully');
+  debugLog('[Main] App initialized successfully');
 }
 
 // ---------------------------------------------------------------------------

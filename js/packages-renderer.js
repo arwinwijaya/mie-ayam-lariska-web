@@ -7,6 +7,8 @@
  * Architecture: ES Module
  */
 
+import { debugWarn } from './debug.js';
+
 const FALLBACK_PACKAGES = {
   'paket_hemat': {
     name: 'Paket Lengkap',
@@ -188,7 +190,7 @@ function loadPackages() {
       });
     });
   }).catch(function(err) {
-    console.warn('[packages] Firebase error, using fallback:', err);
+    debugWarn('[packages] Firebase error, using fallback:', err);
     renderPackages(FALLBACK_PACKAGES, null, container);
   });
 
@@ -199,7 +201,7 @@ function initPackagesRenderer() {
   let loaded = false;
   const fallbackTimer = setTimeout(function() {
     if (!loaded) {
-      console.warn('[packages] FirebaseService timeout, rendering fallback');
+      debugWarn('[packages] FirebaseService timeout, rendering fallback');
       const container = document.getElementById('packages-container');
       renderPackages(FALLBACK_PACKAGES, null, container);
     }

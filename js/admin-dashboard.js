@@ -10,6 +10,8 @@
 
 'use strict';
 
+import { debugLog } from './debug.js';
+
 // State
 var currentMenuData = {};
 var currentPackagesData = {};
@@ -22,7 +24,7 @@ var imageUpload = null;
 // Initialize menu data
 function initMenuData() {
   FirebaseService.seedInitialMenu().then(function() {
-    console.log('[Admin] Menu data initialized');
+    debugLog('[Admin] Menu data initialized');
     loadAndRenderMenu();
   }).catch(function(error) {
     console.error('[Admin] Error initializing menu:', error);
@@ -30,7 +32,7 @@ function initMenuData() {
 
   // Seed packages data
   FirebaseService.seedInitialPackages().then(function() {
-    console.log('[Admin] Packages data initialized');
+    debugLog('[Admin] Packages data initialized');
     loadAndRenderPackages();
   }).catch(function(error) {
     console.error('[Admin] Error initializing packages:', error);

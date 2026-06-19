@@ -43,7 +43,7 @@
           ".validate": "newData.isString() && newData.val().length <= 10"
         },
         "items": {
-          ".validate": "newData.hasChildren() && newData.numChildren() >= 1 && newData.numChildren() <= 10"
+          ".validate": "newData.hasChildren()"
         },
         "tag": {
           ".validate": "newData.isString() && newData.val().length <= 30"

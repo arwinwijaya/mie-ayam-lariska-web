@@ -1736,7 +1736,7 @@ ul {
   padding: 6px 20px;
   font-size: var(--font-size-sm);
   font-weight: 600;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   text-decoration: none;
   display: inline-flex;
   align-items: center;

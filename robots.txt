@@ -1,0 +1,8 @@
+# robots.txt for Mie Ayam Lariska
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /init-menu.html
+Disallow: /init-stock.html
+
+Sitemap: https://mie-ayam-lariska-web.web.app/sitemap.xml

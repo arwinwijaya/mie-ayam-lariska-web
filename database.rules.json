@@ -2,19 +2,89 @@
   "rules": {
     "menu": {
       ".read": true,
-      ".write": true
+      ".write": "root.child('admin_sessions').child(auth.uid).exists()",
+      "$itemId": {
+        ".validate": "newData.hasChildren(['name', 'price', 'category', 'status'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+        },
+        "category": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50"
+        },
+        "price": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999"
+        },
+        "description": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() === 'available' || newData.val() === 'limited' || newData.val() === 'sold_out')"
+        },
+        "order": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        }
+      }
     },
     "packages": {
       ".read": true,
-      ".write": true
+      ".write": "root.child('admin_sessions').child(auth.uid).exists()",
+      "$packageId": {
+        ".validate": "newData.hasChildren(['name', 'price', 'description', 'items'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+        },
+        "price": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 999999"
+        },
+        "description": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
+        },
+        "icon": {
+          ".validate": "newData.isString() && newData.val().length <= 10"
+        },
+        "items": {
+          ".validate": "newData.isList() && newData.val().length >= 1 && newData.val().length <= 10"
+        },
+        "tag": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "isFeatured": {
+          ".validate": "newData.isBoolean()"
+        },
+        "isActive": {
+          ".validate": "newData.isBoolean()"
+        },
+        "whatsappMessage": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "order": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        }
+      }
     },
     "recommended_packages": {
       ".read": true,
-      ".write": true
+      ".write": "root.child('admin_sessions').child(auth.uid).exists()"
     },
     "stock": {
       ".read": true,
-      ".write": true
+      ".write": "root.child('admin_sessions').child(auth.uid).exists()",
+      "$itemId": {
+        ".validate": "newData.isString() && (newData.val() === 'available' || newData.val() === 'limited' || newData.val() === 'sold_out')"
+      }
+    },
+    "admin_sessions": {
+      ".read": "root.child('admin_sessions').child(auth.uid).exists()",
+      ".write": "root.child('admin_sessions').child(auth.uid).exists()",
+      "$uid": {
+        ".validate": "auth !== null && auth.uid === $uid && newData.hasChildren(['created_at', 'expires_at'])",
+        "created_at": {
+          ".validate": "newData.isNumber()"
+        },
+        "expires_at": {
+          ".validate": "newData.isNumber() && newData.val() > now"
+        }
+      }
     }
   }
 }

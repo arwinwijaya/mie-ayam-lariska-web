@@ -16,13 +16,10 @@
  * Architecture: Firebase client-side SDK only, no server-side functions.
  */
 
-(function () {
-  'use strict';
-
-  // ---------------------------------------------------------------------------
-  // Firebase configuration — credentials from firebase.txt
-  // ---------------------------------------------------------------------------
-  var firebaseConfig = {
+// ---------------------------------------------------------------------------
+// Firebase configuration — credentials from firebase.txt
+// ---------------------------------------------------------------------------
+var firebaseConfig = {
     apiKey: 'AIzaSyCXXhBLtrRlGH-exUdEui4DPCDejKwMkzE',
     authDomain: 'mie-ayam-lariska-web.firebaseapp.com',
     databaseURL: 'https://mie-ayam-lariska-web-default-rtdb.asia-southeast1.firebasedatabase.app',
@@ -36,28 +33,28 @@
   // ---------------------------------------------------------------------------
   // Guard: ensure Firebase compat SDK is loaded before this script
   // ---------------------------------------------------------------------------
-  if (typeof firebase === 'undefined') {
-    console.error(
-      '[FirebaseService] Firebase SDK not loaded. ' +
-      'Include firebase-app-compat.js and firebase-database-compat.js ' +
-      'before firebase-config.js.'
-    );
-    return;
-  }
+if (typeof firebase === 'undefined') {
+  console.error(
+    '[FirebaseService] Firebase SDK not loaded. ' +
+    'Include firebase-app-compat.js and firebase-database-compat.js ' +
+    'before firebase-config.js.'
+  );
+  throw new Error('Firebase SDK not loaded');
+}
 
-  // ---------------------------------------------------------------------------
-  // Initialize Firebase & get Realtime Database reference
-  // ---------------------------------------------------------------------------
-  firebase.initializeApp(firebaseConfig);
-  var db = firebase.database();
-  var menuRef = db.ref('menu');
-  var packagesRef = db.ref('packages');
+// ---------------------------------------------------------------------------
+// Initialize Firebase & get Realtime Database reference
+// ---------------------------------------------------------------------------
+firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+var menuRef = db.ref('menu');
+var packagesRef = db.ref('packages');
 
-  // ---------------------------------------------------------------------------
-  // Initial menu data — all menu items with full data structure
-  // Item IDs follow slug format: lowercase, underscores for spaces
-  // ---------------------------------------------------------------------------
-  var INITIAL_MENU_DATA = {
+// ---------------------------------------------------------------------------
+// Initial menu data — all menu items with full data structure
+// Item IDs follow slug format: lowercase, underscores for spaces
+// ---------------------------------------------------------------------------
+var INITIAL_MENU_DATA = {
     // Mie Ayam (11 items)
     'mie_ayam_mini': {
       name: 'Mie Ayam Mini',
@@ -255,16 +252,16 @@
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // Menu management functions
-  // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Menu management functions
+// ---------------------------------------------------------------------------
 
-  /**
-   * Seed initial menu data to Firebase.
-   * Only creates entries that do not already exist — safe to call repeatedly.
-   * @returns {Promise<void>}
-   */
-  function seedInitialMenu() {
+/**
+ * Seed initial menu data to Firebase.
+ * Only creates entries that do not already exist — safe to call repeatedly.
+ * @returns {Promise<void>}
+ */
+function seedInitialMenu() {
     return menuRef.once('value').then(function (snapshot) {
       var existingData = snapshot.val();
       var updates = {};
@@ -283,126 +280,126 @@
     });
   }
 
-  /**
-   * Listen to menu changes for a single menu item.
-   * @param {string} itemId   - The menu item ID (slug)
-   * @param {function} callback - Called with the full item data
-   * @returns {function} Unsubscribe function
-   */
-  function onMenuItemChange(itemId, callback) {
-    var itemRef = menuRef.child(itemId);
+/**
+ * Listen to menu changes for a single menu item.
+ * @param {string} itemId   - The menu item ID (slug)
+ * @param {function} callback - Called with the full item data
+ * @returns {function} Unsubscribe function
+ */
+function onMenuItemChange(itemId, callback) {
+  var itemRef = menuRef.child(itemId);
 
-    function handler(snapshot) {
-      var data = snapshot.val();
-      callback(data);
-    }
-
-    itemRef.on('value', handler);
-
-    return function unsubscribe() {
-      itemRef.off('value', handler);
-    };
+  function handler(snapshot) {
+    var data = snapshot.val();
+    callback(data);
   }
 
-  /**
-   * Listen to all menu changes at once.
-   * @param {function} callback - Called with the full menu data object
-   * @returns {function} Unsubscribe function
-   */
-  function onAllMenuChange(callback) {
-    function handler(snapshot) {
-      var data = snapshot.val() || {};
-      callback(data);
-    }
+  itemRef.on('value', handler);
 
-    menuRef.on('value', handler);
+  return function unsubscribe() {
+    itemRef.off('value', handler);
+  };
+}
 
-    return function unsubscribe() {
-      menuRef.off('value', handler);
-    };
+/**
+ * Listen to all menu changes at once.
+ * @param {function} callback - Called with the full menu data object
+ * @returns {function} Unsubscribe function
+ */
+function onAllMenuChange(callback) {
+  function handler(snapshot) {
+    var data = snapshot.val() || {};
+    callback(data);
   }
 
-  /**
-   * Update a menu item.
-   * @param {string} itemId - The menu item ID
-   * @param {Object} updates - Object with fields to update
-   * @returns {Promise<void>}
-   */
-  function updateMenuItem(itemId, updates) {
-    return menuRef.child(itemId).update(updates);
-  }
+  menuRef.on('value', handler);
 
-  /**
-   * Delete a menu item.
-   * @param {string} itemId - The menu item ID
-   * @returns {Promise<void>}
-   */
-  function deleteMenuItem(itemId) {
-    return menuRef.child(itemId).remove();
-  }
+  return function unsubscribe() {
+    menuRef.off('value', handler);
+  };
+}
 
-  /**
-   * Get a single menu item.
-   * @param {string} itemId - The menu item ID
-   * @returns {Promise<Object>} Menu item data
-   */
-  function getMenuItem(itemId) {
-    return menuRef.child(itemId).once('value').then(function (snapshot) {
-      return snapshot.val();
-    });
-  }
+/**
+ * Update a menu item.
+ * @param {string} itemId - The menu item ID
+ * @param {Object} updates - Object with fields to update
+ * @returns {Promise<void>}
+ */
+function updateMenuItem(itemId, updates) {
+  return menuRef.child(itemId).update(updates);
+}
 
-  /**
-   * Get all menu data.
-   * @returns {Promise<Object>} Full menu data object
-   */
-  function getAllMenu() {
-    return menuRef.once('value').then(function (snapshot) {
-      return snapshot.val() || {};
-    });
-  }
+/**
+ * Delete a menu item.
+ * @param {string} itemId - The menu item ID
+ * @returns {Promise<void>}
+ */
+function deleteMenuItem(itemId) {
+  return menuRef.child(itemId).remove();
+}
 
-  /**
-   * Convert a menu item name to a slug ID.
-   * "Mie Ayam Komplit" => "mie_ayam_komplit"
-   * @param {string} name - Menu item display name
-   * @returns {string} Slugified ID
-   */
-  function nameToSlug(name) {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, '_');
-  }
+/**
+ * Get a single menu item.
+ * @param {string} itemId - The menu item ID
+ * @returns {Promise<Object>} Menu item data
+ */
+function getMenuItem(itemId) {
+  return menuRef.child(itemId).once('value').then(function (snapshot) {
+    return snapshot.val();
+  });
+}
 
-  /**
-   * Validate a stock status string.
-   * @param {string} status - Status to validate
-   * @returns {boolean} True if status is one of: available, limited, sold_out
-   */
-  function isValidStatus(status) {
-    return ['available', 'limited', 'sold_out'].indexOf(status) !== -1;
-  }
+/**
+ * Get all menu data.
+ * @returns {Promise<Object>} Full menu data object
+ */
+function getAllMenu() {
+  return menuRef.once('value').then(function (snapshot) {
+    return snapshot.val() || {};
+  });
+}
 
-  /**
-   * Get status display text in Indonesian.
-   * @param {string} status - Status string
-   * @returns {string} Display text
-   */
-  function getStatusText(status) {
-    switch (status) {
-      case 'available': return 'Tersedia';
-      case 'limited': return 'Terbatas';
-      case 'sold_out': return 'Habis';
-      default: return 'Tersedia';
-    }
-  }
+/**
+ * Convert a menu item name to a slug ID.
+ * "Mie Ayam Komplit" => "mie_ayam_komplit"
+ * @param {string} name - Menu item display name
+ * @returns {string} Slugified ID
+ */
+function nameToSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '_');
+}
 
-  // ---------------------------------------------------------------------------
-  // Initial packages data — recommendation packages with full data structure
-  // Package IDs follow slug format: lowercase, underscores for spaces
-  // ---------------------------------------------------------------------------
-  var INITIAL_PACKAGES_DATA = {
+/**
+ * Validate a stock status string.
+ * @param {string} status - Status to validate
+ * @returns {boolean} True if status is one of: available, limited, sold_out
+ */
+function isValidStatus(status) {
+  return ['available', 'limited', 'sold_out'].indexOf(status) !== -1;
+}
+
+/**
+ * Get status display text in Indonesian.
+ * @param {string} status - Status string
+ * @returns {string} Display text
+ */
+function getStatusText(status) {
+  switch (status) {
+    case 'available': return 'Tersedia';
+    case 'limited': return 'Terbatas';
+    case 'sold_out': return 'Habis';
+    default: return 'Tersedia';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Initial packages data — recommendation packages with full data structure
+// Package IDs follow slug format: lowercase, underscores for spaces
+// ---------------------------------------------------------------------------
+var INITIAL_PACKAGES_DATA = {
     'paket_hemat': {
       name: 'Paket Lengkap',
       description: 'Mie Ayam Biasa + Es Teh Manis',
@@ -453,16 +450,16 @@
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // Packages management functions
-  // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Packages management functions
+// ---------------------------------------------------------------------------
 
-  /**
-   * Seed initial packages data to Firebase.
-   * Only creates entries that do not already exist — safe to call repeatedly.
-   * @returns {Promise<void>}
-   */
-  function seedInitialPackages() {
+/**
+ * Seed initial packages data to Firebase.
+ * Only creates entries that do not already exist — safe to call repeatedly.
+ * @returns {Promise<void>}
+ */
+function seedInitialPackages() {
     return packagesRef.once('value').then(function (snapshot) {
       var existingData = snapshot.val();
       var updates = {};
@@ -481,146 +478,147 @@
     });
   }
 
-  /**
-   * Add a new package.
-   * @param {Object} data - Package data
-   * @returns {Promise<void>}
-   */
-  function addPackage(data) {
-    var packageId = data.name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, '_');
-    return packagesRef.child(packageId).set(data);
+/**
+ * Add a new package.
+ * @param {Object} data - Package data
+ * @returns {Promise<void>}
+ */
+function addPackage(data) {
+  var packageId = data.name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '_');
+  return packagesRef.child(packageId).set(data);
+}
+
+/**
+ * Get all packages.
+ * @returns {Promise<Object>} Full packages data object
+ */
+function getPackages() {
+  return packagesRef.once('value').then(function (snapshot) {
+    return snapshot.val() || {};
+  });
+}
+
+/**
+ * Update a package.
+ * @param {string} packageId - The package ID
+ * @param {Object} data - Object with fields to update
+ * @returns {Promise<void>}
+ */
+function updatePackage(packageId, data) {
+  return packagesRef.child(packageId).update(data);
+}
+
+/**
+ * Delete a package.
+ * @param {string} packageId - The package ID
+ * @returns {Promise<void>}
+ */
+function deletePackage(packageId) {
+  return packagesRef.child(packageId).remove();
+}
+
+/**
+ * Listen to all packages changes at once.
+ * @param {function} callback - Called with the full packages data object
+ * @returns {function} Unsubscribe function
+ */
+function onAllPackagesChange(callback) {
+  function handler(snapshot) {
+    var data = snapshot.val() || {};
+    callback(data);
   }
 
-  /**
-   * Get all packages.
-   * @returns {Promise<Object>} Full packages data object
-   */
-  function getPackages() {
-    return packagesRef.once('value').then(function (snapshot) {
-      return snapshot.val() || {};
-    });
-  }
+  packagesRef.on('value', handler);
 
-  /**
-   * Update a package.
-   * @param {string} packageId - The package ID
-   * @param {Object} data - Object with fields to update
-   * @returns {Promise<void>}
-   */
-  function updatePackage(packageId, data) {
-    return packagesRef.child(packageId).update(data);
-  }
-
-  /**
-   * Delete a package.
-   * @param {string} packageId - The package ID
-   * @returns {Promise<void>}
-   */
-  function deletePackage(packageId) {
-    return packagesRef.child(packageId).remove();
-  }
-
-  /**
-   * Listen to all packages changes at once.
-   * @param {function} callback - Called with the full packages data object
-   * @returns {function} Unsubscribe function
-   */
-  function onAllPackagesChange(callback) {
-    function handler(snapshot) {
-      var data = snapshot.val() || {};
-      callback(data);
-    }
-
-    packagesRef.on('value', handler);
-
-    return function unsubscribe() {
-      packagesRef.off('value', handler);
-    };
-  }
-
-  // ---------------------------------------------------------------------------
-  // Backward compatibility aliases
-  // ---------------------------------------------------------------------------
-  var stockRef = menuRef; // Alias for backward compatibility
-  var INITIAL_STOCK_DATA = INITIAL_MENU_DATA; // Alias for backward compatibility
-
-  function seedInitialStock() {
-    return seedInitialMenu();
-  }
-
-  function onStockChange(itemId, callback) {
-    return onMenuItemChange(itemId, function (data) {
-      var status = (data && data.status) ? data.status : 'sold_out';
-      callback(status);
-    });
-  }
-
-  function onAllStockChange(callback) {
-    return onAllMenuChange(callback);
-  }
-
-  function updateStock(itemId, status) {
-    return updateMenuItem(itemId, { status: status });
-  }
-
-  function getStockStatus(itemId) {
-    return getMenuItem(itemId).then(function (data) {
-      return (data && data.status) ? data.status : 'sold_out';
-    });
-  }
-
-  function getAllStock() {
-    return getAllMenu();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Expose public API via global namespace
-  // ---------------------------------------------------------------------------
-  window.FirebaseService = {
-    // Config
-    config:               firebaseConfig,
-    db:                   db,
-    menuRef:              menuRef,
-    stockRef:             stockRef, // backward compat
-    packagesRef:          packagesRef,
-
-    // Data
-    INITIAL_MENU_DATA:    INITIAL_MENU_DATA,
-    INITIAL_STOCK_DATA:   INITIAL_STOCK_DATA, // backward compat
-    INITIAL_PACKAGES_DATA: INITIAL_PACKAGES_DATA,
-
-    // Menu functions
-    seedInitialMenu:      seedInitialMenu,
-    onMenuItemChange:     onMenuItemChange,
-    onAllMenuChange:      onAllMenuChange,
-    updateMenuItem:       updateMenuItem,
-    deleteMenuItem:       deleteMenuItem,
-    getMenuItem:          getMenuItem,
-    getAllMenu:            getAllMenu,
-    nameToSlug:           nameToSlug,
-    isValidStatus:        isValidStatus,
-    getStatusText:        getStatusText,
-
-    // Packages functions
-    seedInitialPackages:  seedInitialPackages,
-    addPackage:           addPackage,
-    getPackages:          getPackages,
-    updatePackage:        updatePackage,
-    deletePackage:        deletePackage,
-    onAllPackagesChange:  onAllPackagesChange,
-
-    // Backward compatibility
-    seedInitialStock:     seedInitialStock,
-    onStockChange:        onStockChange,
-    onAllStockChange:     onAllStockChange,
-    updateStock:          updateStock,
-    getStockStatus:       getStockStatus,
-    getAllStock:           getAllStock,
-    nameToStockId:        nameToSlug, // alias
-    isValidStockStatus:   isValidStatus // alias
+  return function unsubscribe() {
+    packagesRef.off('value', handler);
   };
+}
 
-})();
+// ---------------------------------------------------------------------------
+// Backward compatibility aliases
+// ---------------------------------------------------------------------------
+var stockRef = menuRef; // Alias for backward compatibility
+var INITIAL_STOCK_DATA = INITIAL_MENU_DATA; // Alias for backward compatibility
+
+function seedInitialStock() {
+  return seedInitialMenu();
+}
+
+function onStockChange(itemId, callback) {
+  return onMenuItemChange(itemId, function (data) {
+    var status = (data && data.status) ? data.status : 'sold_out';
+    callback(status);
+  });
+}
+
+function onAllStockChange(callback) {
+  return onAllMenuChange(callback);
+}
+
+function updateStock(itemId, status) {
+  return updateMenuItem(itemId, { status: status });
+}
+
+function getStockStatus(itemId) {
+  return getMenuItem(itemId).then(function (data) {
+    return (data && data.status) ? data.status : 'sold_out';
+  });
+}
+
+function getAllStock() {
+  return getAllMenu();
+}
+
+// ---------------------------------------------------------------------------
+// Export public API as ES module
+// ---------------------------------------------------------------------------
+export const FirebaseService = {
+  // Config
+  config:               firebaseConfig,
+  db:                   db,
+  menuRef:              menuRef,
+  stockRef:             stockRef, // backward compat
+  packagesRef:          packagesRef,
+
+  // Data
+  INITIAL_MENU_DATA:    INITIAL_MENU_DATA,
+  INITIAL_STOCK_DATA:   INITIAL_STOCK_DATA, // backward compat
+  INITIAL_PACKAGES_DATA: INITIAL_PACKAGES_DATA,
+
+  // Menu functions
+  seedInitialMenu:      seedInitialMenu,
+  onMenuItemChange:     onMenuItemChange,
+  onAllMenuChange:      onAllMenuChange,
+  updateMenuItem:       updateMenuItem,
+  deleteMenuItem:       deleteMenuItem,
+  getMenuItem:          getMenuItem,
+  getAllMenu:            getAllMenu,
+  nameToSlug:           nameToSlug,
+  isValidStatus:        isValidStatus,
+  getStatusText:        getStatusText,
+
+  // Packages functions
+  seedInitialPackages:  seedInitialPackages,
+  addPackage:           addPackage,
+  getPackages:          getPackages,
+  updatePackage:        updatePackage,
+  deletePackage:        deletePackage,
+  onAllPackagesChange:  onAllPackagesChange,
+
+  // Backward compatibility
+  seedInitialStock:     seedInitialStock,
+  onStockChange:        onStockChange,
+  onAllStockChange:     onAllStockChange,
+  updateStock:          updateStock,
+  getStockStatus:       getStockStatus,
+  getAllStock:           getAllStock,
+  nameToStockId:        nameToSlug, // alias
+  isValidStockStatus:   isValidStatus // alias
+};
+
+// Backward compatibility: expose on window for non-module scripts
+window.FirebaseService = FirebaseService;

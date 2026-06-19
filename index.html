@@ -12,12 +12,84 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Lariska">
 
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://mie-ayam-lariska-web.web.app/">
+
   <!-- Open Graph -->
   <meta property="og:title" content="Mie Ayam Lariska — Mie Ayam Rumahan dengan Topping Lengkap">
   <meta property="og:description" content="Nikmati mie ayam hangat dengan banyak pilihan topping. Harga mulai dari 5k. Bisa pesan untuk acara.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Mie Ayam Lariska">
   <meta property="og:locale" content="id_ID">
+  <meta property="og:url" content="https://mie-ayam-lariska-web.web.app/">
+  <meta property="og:image" content="https://mie-ayam-lariska-web.web.app/images/hero-mie-ayam.jpg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Mie Ayam Lariska — Mie Ayam Rumahan dengan Topping Lengkap">
+  <meta name="twitter:description" content="Nikmati mie ayam hangat dengan banyak pilihan topping. Harga mulai dari 5k. Bisa pesan untuk acara.">
+  <meta name="twitter:image" content="https://mie-ayam-lariska-web.web.app/images/hero-mie-ayam.jpg">
+
+  <!-- JSON-LD Restaurant Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    "name": "Mie Ayam Lariska",
+    "image": "https://mie-ayam-lariska-web.web.app/images/hero-mie-ayam.jpg",
+    "url": "https://mie-ayam-lariska-web.web.app/",
+    "telephone": "+62-813-6485-6560",
+    "priceRange": "Rp1.000 - Rp18.000",
+    "servesCuisine": "Indonesian",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Pasarkambing Adijaya",
+      "addressRegion": "Indonesia",
+      "addressCountry": "ID"
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "10:00",
+        "closes": "18:00"
+      }
+    ],
+    "menu": "https://mie-ayam-lariska-web.web.app/#menu",
+    "hasMenu": {
+      "@type": "Menu",
+      "hasMenuSection": [
+        {
+          "@type": "MenuSection",
+          "name": "Mie Ayam",
+          "hasMenuItem": [
+            {"@type": "MenuItem", "name": "Mie Ayam Mini", "offers": {"@type": "Offer", "price": "5000", "priceCurrency": "IDR"}},
+            {"@type": "MenuItem", "name": "Mie Ayam Biasa", "offers": {"@type": "Offer", "price": "10000", "priceCurrency": "IDR"}},
+            {"@type": "MenuItem", "name": "Mie Ayam Pangsit", "offers": {"@type": "Offer", "price": "12000", "priceCurrency": "IDR"}},
+            {"@type": "MenuItem", "name": "Mie Ayam Komplit", "offers": {"@type": "Offer", "price": "15000", "priceCurrency": "IDR"}}
+          ]
+        },
+        {
+          "@type": "MenuSection",
+          "name": "Topping Tambahan",
+          "hasMenuItem": [
+            {"@type": "MenuItem", "name": "Ceker", "offers": {"@type": "Offer", "price": "2000", "priceCurrency": "IDR"}},
+            {"@type": "MenuItem", "name": "Bakso", "offers": {"@type": "Offer", "price": "2000", "priceCurrency": "IDR"}},
+            {"@type": "MenuItem", "name": "Pangsit", "offers": {"@type": "Offer", "price": "2000", "priceCurrency": "IDR"}}
+          ]
+        },
+        {
+          "@type": "MenuSection",
+          "name": "Minuman",
+          "hasMenuItem": [
+            {"@type": "MenuItem", "name": "Teh Anget", "offers": {"@type": "Offer", "price": "2000", "priceCurrency": "IDR"}},
+            {"@type": "MenuItem", "name": "Es Teh Manis", "offers": {"@type": "Offer", "price": "3000", "priceCurrency": "IDR"}}
+          ]
+        }
+      ]
+    }
+  }
+  </script>
 
   <link rel="stylesheet" href="css/style.css">
 </head>
